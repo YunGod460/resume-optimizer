@@ -752,26 +752,251 @@ body::before{
 @keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes typingDot{0%,60%,100%{opacity:.3;transform:scale(.8)}30%{opacity:1;transform:scale(1.2)}}
 
-/* ===== Responsive ===== */
-@media(max-width:768px){
-  .header-inner{padding:0 16px}
-  .nav-btn{padding:6px 10px;font-size:.75rem}
-  .main{padding:32px 16px 64px}
-  .hero{padding:48px 0 36px;margin:-32px -16px 40px}
-  .hero h1{font-size:2.2rem}
-  .hero p{font-size:1rem}
-  .feature-grid{grid-template-columns:1fr}
-  .section-title{font-size:1.6rem}
-  .section-subtitle{font-size:.95rem}
-  .preview-frame{padding:12px}
-  .resume-page{width:100%;min-height:auto}
-  .rs-body,.rs-header{flex-direction:column}
-  .rs-sidebar,.rs-main{width:100%}
-  .rs-header{padding:16px 18px;margin:0 12px}
-  .steps{flex-direction:column;gap:8px}
+/* ===== Responsive — Small phones (≤480px) ===== */
+@media(max-width:480px){
+  body{font-size:14px}
+
+  /* Header */
+  .header-inner{padding:0 10px;height:48px}
+  .logo{font-size:1rem;gap:6px}
+  .logo svg{width:22px;height:22px}
+
+  /* Nav — compact scrollable pills */
+  .nav{gap:2px;padding:2px;border-radius:20px;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-shrink:1;max-width:calc(100vw - 90px)}
+  .nav::-webkit-scrollbar{display:none}
+  .nav-btn{padding:6px 10px;font-size:.7rem;white-space:nowrap;flex-shrink:0}
+
+  /* Main */
+  .main{padding:24px 10px 56px}
+
+  /* Hero */
+  .hero{padding:36px 0 28px;margin:-24px -10px 32px}
+  .hero h1{font-size:1.6rem}
+  .hero p{font-size:.85rem;padding:0 8px}
+  .hero-actions{flex-direction:column;align-items:center;gap:10px}
+  .hero-actions .btn{width:100%;max-width:280px;justify-content:center}
+  .hero-orb{display:none}
+
+  /* Feature grid */
+  .feature-grid{grid-template-columns:1fr;gap:10px}
+  .feature-card{padding:18px 16px}
+  .feature-card h3{font-size:.9rem}
+  .feature-card p{font-size:.78rem}
+
+  /* Section titles */
+  .section-title{font-size:1.3rem}
+  .section-subtitle{font-size:.82rem;margin-bottom:24px}
+
+  /* Cards */
+  .card{padding:16px 14px;margin-bottom:12px;border-radius:var(--radius)}
+
+  /* Buttons — larger touch targets */
+  .btn{padding:11px 18px;font-size:.82rem;min-height:44px}
+  .btn-lg{padding:13px 22px;font-size:.9rem}
+
+  /* Forms */
+  .form-input,.form-textarea,.form-select{padding:12px 14px;font-size:16px}
+  .form-textarea{min-height:140px}
+  .form-label{font-size:.72rem}
+
+  /* Steps */
+  .steps{flex-direction:column;gap:6px}
+  .step{text-align:left;display:flex;align-items:center;gap:12px;padding:8px 0}
   .step::after{display:none}
-  .ats-checklist{grid-template-columns:1fr}
-  .template-grid{grid-template-columns:1fr}
-  .mode-switch{flex-direction:column}
-  .card{padding:20px 18px}
+  .step-num{width:32px;height:32px;font-size:.75rem;margin-bottom:0}
+  .step-label{font-size:.75rem}
+
+  /* Mode switch */
+  .mode-switch{flex-direction:column;gap:10px}
+  .mode-option{padding:14px 16px}
+  .mode-option-icon{width:36px;height:36px;font-size:1.1rem}
+
+  /* Tabs — scrollable */
+  .tabs{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;gap:2px;border-radius:20px}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{padding:7px 12px;font-size:.78rem;white-space:nowrap;flex-shrink:0}
+
+  /* Template grid */
+  .template-grid{grid-template-columns:1fr;gap:10px}
+  .template-preview{height:100px}
+
+  /* Preview frame */
+  .preview-frame{padding:6px;min-height:auto}
+  .preview-toolbar{flex-wrap:wrap;gap:6px;padding:10px 14px}
+  .preview-toolbar .btn{font-size:.75rem;padding:8px 12px;min-height:36px}
+  .resume-page{width:100%;min-height:auto;font-size:9pt}
+  .rs-header{flex-direction:column;padding:12px 14px;margin:0 8px}
+  .rs-name{font-size:18pt}
+  .rs-header-right{text-align:left;margin-top:8px}
+  .rs-header-decor{font-size:18pt}
+  .rs-body{flex-direction:column}
+  .rs-sidebar{width:100%;padding:12px}
+  .rs-main{width:100%;padding:12px}
+  .rs-section-title,.rs-section-title-side{font-size:10pt}
+  .rs-exp-header{flex-direction:column;gap:4px}
+
+  /* ATS checklist */
+  .ats-checklist{grid-template-columns:1fr;gap:6px}
+  .ats-item{padding:8px 10px;font-size:.75rem}
+
+  /* Chat */
+  .chat-container{height:calc(100vh - 100px);max-height:none;border-radius:var(--radius)}
+  .chat-messages{padding:14px}
+  .chat-msg{max-width:90%}
+  .chat-bubble{padding:10px 14px;font-size:.82rem}
+  .chat-input-row{padding:10px 12px;gap:8px}
+  .chat-input-row input{padding:10px 14px;font-size:16px}
+  .chat-quick-actions{padding:0 12px 8px;gap:6px}
+  .chat-quick-btn{font-size:.72rem;padding:5px 10px}
+  .chat-avatar{width:30px;height:30px;font-size:.75rem}
+
+  /* Modals */
+  .modal{width:96%;padding:20px 16px;border-radius:var(--radius-lg)}
+  .modal-title{font-size:1rem}
+  .modal-actions{flex-direction:column}
+  .modal-actions .btn{width:100%}
+
+  /* Toasts — bottom on mobile */
+  .toast{top:auto;bottom:16px;right:10px;left:10px;font-size:.8rem;padding:12px 16px}
+
+  /* Import zone */
+  .drop-zone{padding:28px 16px}
+  .drop-zone-icon{font-size:2rem}
+  .import-drop-zone{flex-direction:column;text-align:center;gap:8px}
+
+  /* Empty state */
+  .empty-state{padding:40px 16px}
+
+  /* Score */
+  .score-circle{width:72px;height:72px;font-size:1.4rem}
+  .score-inner{width:60px;height:60px}
+
+  /* JD section */
+  .jd-skill-row{flex-direction:column;align-items:flex-start}
+  .jd-tags{gap:3px}
+
+  /* Career result action */
+  #career-result-action button{width:100%;font-size:.82rem;padding:12px 16px}
+
+  /* Hero on home — remove orbs and dot grid for perf */
+  .hero::after{display:none}
+}
+
+/* ===== Responsive — Large phones / small tablets (481–768px) ===== */
+@media(min-width:481px) and (max-width:768px){
+  body{font-size:15px}
+
+  /* Header */
+  .header-inner{padding:0 16px;height:54px}
+  .logo{font-size:1.1rem}
+  .nav{gap:3px;padding:2px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .nav::-webkit-scrollbar{display:none}
+  .nav-btn{padding:7px 13px;font-size:.78rem;white-space:nowrap;flex-shrink:0}
+
+  /* Main */
+  .main{padding:28px 18px 64px}
+
+  /* Hero */
+  .hero{padding:52px 0 40px;margin:-28px -18px 44px}
+  .hero h1{font-size:2rem}
+  .hero p{font-size:.95rem}
+  .hero-actions{gap:10px}
+  .hero-actions .btn{min-width:180px}
+
+  /* Feature grid — 2 columns on tablet */
+  .feature-grid{grid-template-columns:repeat(2,1fr);gap:12px}
+  .feature-card{padding:22px 16px}
+
+  /* Section titles */
+  .section-title{font-size:1.8rem}
+  .section-subtitle{font-size:.9rem;margin-bottom:28px}
+
+  /* Cards */
+  .card{padding:20px 20px;margin-bottom:14px}
+
+  /* Forms */
+  .form-input,.form-textarea,.form-select{padding:11px 14px}
+  .form-textarea{min-height:150px}
+
+  /* Steps */
+  .steps{gap:0}
+  .step::after{width:80%}
+  .step-num{width:36px;height:36px;font-size:.8rem}
+  .step-label{font-size:.78rem}
+
+  /* Mode switch */
+  .mode-switch{gap:10px}
+  .mode-option{padding:14px 16px}
+
+  /* Template grid */
+  .template-grid{grid-template-columns:repeat(2,1fr);gap:12px}
+  .template-preview{height:120px}
+
+  /* Preview */
+  .preview-frame{padding:10px}
+  .resume-page{width:100%;min-height:auto;font-size:10pt}
+  .rs-header{padding:16px 20px;margin:0 14px}
+  .rs-name{font-size:22pt}
+  .rs-body{flex-direction:column}
+  .rs-sidebar{width:100%;padding:14px}
+  .rs-main{width:100%;padding:14px}
+
+  /* ATS */
+  .ats-checklist{grid-template-columns:1fr 1fr;gap:8px}
+
+  /* Chat */
+  .chat-container{height:460px;max-height:65vh}
+  .chat-msg{max-width:86%}
+  .chat-messages{padding:18px}
+
+  /* Modals */
+  .modal{padding:24px 20px;max-width:440px}
+
+  /* Tabs */
+  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{white-space:nowrap;flex-shrink:0}
+}
+
+/* ===== Responsive — Tablet / small desktop (769–1024px) ===== */
+@media(min-width:769px) and (max-width:1024px){
+  .main{padding:40px 24px 80px}
+  .hero{padding:64px 0 48px;margin:-40px -24px 48px}
+  .hero h1{font-size:2.6rem}
+  .feature-grid{gap:14px}
+  .template-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+  .resume-page{width:100%;min-height:auto}
+  .chat-container{height:480px}
+}
+
+/* ===== Touch device optimizations ===== */
+@media(hover:none) and (pointer:coarse){
+  /* Larger touch targets */
+  .nav-btn{min-height:40px}
+  .btn{min-height:44px}
+  .tab{min-height:40px}
+
+  /* Disable hover effects that cause flicker on touch */
+  .feature-card:hover{transform:none;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  .card:hover{box-shadow:0 1px 2px rgba(0,0,0,.03);border-color:var(--border)}
+  .template-card:hover{transform:none;border-color:var(--border)}
+  .btn-primary:hover{transform:none}
+
+  /* Active states for touch feedback */
+  .feature-card:active{transform:scale(.98);background:var(--surface-raised)}
+  .btn:active{transform:scale(.96)}
+  .template-card:active{border-color:rgba(79,70,229,.25)}
+}
+
+/* ===== Print styles ===== */
+@media print{
+  .header,.nav,.hero-actions,.hero-orb,.hero::after,.hero::before,
+  .preview-toolbar,.chat-input-row,.chat-quick-actions,#career-result-action,
+  .toast,.modal-overlay,.btn,footer{display:none!important}
+  body{background:#fff}
+  .main{padding:0;max-width:none}
+  .section{display:block!important;animation:none}
+  .preview-frame{padding:0;background:#fff}
+  .resume-page{width:210mm;min-height:297mm;box-shadow:none;margin:0 auto}
+  .card{box-shadow:none;border:none;padding:0}
 }
