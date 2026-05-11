@@ -1,0 +1,130 @@
+{
+  "default": {
+    "id": "default",
+    "name": "简约专业版",
+    "description": "左侧信息栏+右侧内容区，清晰分层，适合所有行业",
+    "preview": "#4E7282",
+    "colors": {
+      "primary": "#4E7282",
+      "accent": "#4E7282",
+      "sidebar": "#F5F7F8",
+      "text": "#333333",
+      "light": "#F5F7F8",
+      "border": "#E0E4E6",
+      "headerText": "#4E7282",
+      "sectionLine": "#4E7282"
+    },
+    "layout": "sidebar-left",
+    "font": "微软雅黑"
+  },
+  "templates": [
+    {
+      "id": "modern-blue",
+      "name": "现代蓝调",
+      "description": "渐变蓝色主题，适合互联网/科技行业",
+      "preview": "linear-gradient(135deg, #1e40af, #3b82f6)",
+      "colors": {
+        "primary": "#1e40af",
+        "accent": "#3b82f6",
+        "sidebar": "#1e3a5f",
+        "text": "#1e293b",
+        "light": "#eff6ff",
+        "border": "#bfdbfe",
+        "headerText": "#ffffff",
+        "sectionLine": "#3b82f6"
+      },
+      "layout": "sidebar-left",
+      "font": "system"
+    },
+    {
+      "id": "dark-pro",
+      "name": "暗夜专业",
+      "description": "深色高级感，适合设计/创意行业",
+      "preview": "linear-gradient(135deg, #1e293b, #334155)",
+      "colors": {
+        "primary": "#0f172a",
+        "accent": "#38bdf8",
+        "sidebar": "#0f172a",
+        "text": "#e2e8f0",
+        "light": "#1e293b",
+        "border": "#334155",
+        "headerText": "#ffffff",
+        "sectionLine": "#38bdf8"
+      },
+      "layout": "sidebar-left",
+      "font": "system"
+    },
+    {
+      "id": "warm-minimal",
+      "name": "暖色简约",
+      "description": "温暖棕色系，适合教育/咨询/人文行业",
+      "preview": "linear-gradient(135deg, #92400e, #d97706)",
+      "colors": {
+        "primary": "#78350f",
+        "accent": "#d97706",
+        "sidebar": "#fef7ed",
+        "text": "#44403c",
+        "light": "#fef7ed",
+        "border": "#fed7aa",
+        "headerText": "#78350f",
+        "sectionLine": "#d97706"
+      },
+      "layout": "sidebar-left",
+      "font": "serif"
+    },
+    {
+      "id": "forest-green",
+      "name": "森林绿意",
+      "description": "清新绿色主题，适合医疗/环保/教育",
+      "preview": "linear-gradient(135deg, #166534, #22c55e)",
+      "colors": {
+        "primary": "#166534",
+        "accent": "#22c55e",
+        "sidebar": "#f0fdf4",
+        "text": "#14532d",
+        "light": "#f0fdf4",
+        "border": "#bbf7d0",
+        "headerText": "#166534",
+        "sectionLine": "#22c55e"
+      },
+      "layout": "sidebar-left",
+      "font": "system"
+    },
+    {
+      "id": "coral-passion",
+      "name": "珊瑚热情",
+      "description": "活力珊瑚色，适合市场/销售/公关行业",
+      "preview": "linear-gradient(135deg, #e11d48, #fb7185)",
+      "colors": {
+        "primary": "#be123c",
+        "accent": "#fb7185",
+        "sidebar": "#fff1f2",
+        "text": "#3b0210",
+        "light": "#ffe4e6",
+        "border": "#fecdd3",
+        "headerText": "#be123c",
+        "sectionLine": "#e11d48"
+      },
+      "layout": "sidebar-left",
+      "font": "system"
+    },
+    {
+      "id": "royal-purple",
+      "name": "皇家紫韵",
+      "description": "紫色高贵感，适合金融/法律/管理咨询",
+      "preview": "linear-gradient(135deg, #6b21a8, #a855f7)",
+      "colors": {
+        "primary": "#581c87",
+        "accent": "#a855f7",
+        "sidebar": "#faf5ff",
+        "text": "#3b0764",
+        "light": "#faf5ff",
+        "border": "#e9d5ff",
+        "headerText": "#581c87",
+        "sectionLine": "#a855f7"
+      },
+      "layout": "sidebar-left",
+      "font": "system"
+    }
+  ]
+}
