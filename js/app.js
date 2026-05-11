@@ -34,8 +34,10 @@ function switchSection(section) {
   state.currentSection = section;
   document.querySelectorAll('.section').forEach(function(s){s.classList.remove('active');});
   document.querySelectorAll('.nav-btn').forEach(function(b){b.classList.remove('active');});
+  document.querySelectorAll('.bn-btn').forEach(function(b){b.classList.remove('active');});
   var sec = document.getElementById('sec-'+section); if(sec)sec.classList.add('active');
-  var nav = document.querySelector('[data-section="'+section+'"]'); if(nav)nav.classList.add('active');
+  var nav = document.querySelector('.nav-btn[data-section="'+section+'"]'); if(nav)nav.classList.add('active');
+  var bn = document.querySelector('.bn-btn[data-section="'+section+'"]'); if(bn)bn.classList.add('active');
   if(section==='templates') renderTemplateGrid();
   if(section==='generator' && !state.generator.initialized) initGenerator();
   if(section==='career' && document.getElementById('career-chat-messages').children.length <= 1) {
@@ -48,6 +50,9 @@ function switchSection(section) {
 }
 document.getElementById('nav').addEventListener('click',function(e){
   var btn=e.target.closest('.nav-btn'); if(btn)switchSection(btn.dataset.section);
+});
+document.getElementById('bottom-nav').addEventListener('click',function(e){
+  var btn=e.target.closest('.bn-btn'); if(btn)switchSection(btn.dataset.section);
 });
 
 // ========== TOAST ==========
