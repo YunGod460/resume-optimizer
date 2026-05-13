@@ -1103,7 +1103,14 @@ function exportGeneratedPDF() {
 }
 
 // ========== RESUME FILE IMPORT (PDF/DOCX/TXT) ==========
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+var _pdfjsReady=false;
+function ensurePdfJs(){
+  if(!_pdfjsReady&&typeof pdfjsLib!=='undefined'){
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    _pdfjsReady=true;
+  }
+  return typeof pdfjsLib!=='undefined';
+}
 
 function handleResumeFileImport(event) {
   var file = event.target.files[0];
@@ -1140,6 +1147,7 @@ function handleResumeFileImport(event) {
     reader.readAsText(file);
   } else if (ext === 'pdf') {
     reader.onload = function(e) {
+      if(!ensurePdfJs()){showToast('PDF组件加载中，请稍后再试','error');return;}
       var typedarray = new Uint8Array(e.target.result);
       pdfjsLib.getDocument({data: typedarray}).promise.then(function(pdf) {
         var totalPages = pdf.numPages;
@@ -1166,6 +1174,7 @@ function handleResumeFileImport(event) {
     reader.readAsArrayBuffer(file);
   } else if (ext === 'docx') {
     reader.onload = function(e) {
+      if(typeof mammoth==='undefined'){showToast('DOCX组件加载中，请稍后再试','error');return;}
       mammoth.extractRawText({arrayBuffer: e.target.result})
         .then(function(result) { onText(result.value); })
         .catch(function() { onError('DOCX解析失败，请尝试粘贴文本'); });
@@ -1563,10 +1572,19 @@ function loadTemplates(){
     state.templates.default=data.default;state.templates.library=data.templates;
     var imp=localStorage.getItem('resumepro-imported-templates');if(imp){try{state.templates.imported=JSON.parse(imp);}catch(e){}}
     updateTemplateSelector();
+    refreshTemplateGridIfActive();
   }).catch(function(){
     state.templates.default={id:'default',name:'简约专业版',colors:{primary:'#4E7282',accent:'#4E7282',sidebar:'#F5F7F8',text:'#333',border:'#E0E4E6',headerText:'#4E7282',sectionLine:'#4E7282'},layout:'sidebar-left',font:'微软雅黑'};
     state.templates.library=[];
+    updateTemplateSelector();
+    refreshTemplateGridIfActive();
   });
+}
+function refreshTemplateGridIfActive(){
+  if(state.currentSection==='templates'){
+    var activeTab=document.querySelector('#template-tabs .tab.active');
+    renderTemplateGrid(activeTab?activeTab.dataset.cat:'all');
+  }
 }
 
 function getTemplateById(id){
@@ -1582,6 +1600,11 @@ function updateTemplateSelector(){
 
 function renderTemplateGrid(cat){
   cat=cat||'all';var grid=document.getElementById('template-grid'),empty=document.getElementById('templates-empty');
+  // 防止模板未加载时渲染空白
+  if(!state.templates.default){
+    grid.innerHTML='<div class="skeleton-card" style="height:100px"></div><div class="skeleton-line"></div><div class="skeleton-line" style="width:70%"></div>';
+    empty.style.display='none';return;
+  }
   var templates=[];
   if(cat==='all'||cat==='builtin'){templates.push(Object.assign({},state.templates.default,{id:'default',source:'builtin'}));templates=templates.concat(state.templates.library.map(function(t){return Object.assign({},t,{source:'builtin'});}));}
   if(cat==='all'||cat==='imported')templates=templates.concat(state.templates.imported.map(function(t){return Object.assign({},t,{source:'imported'});}));
