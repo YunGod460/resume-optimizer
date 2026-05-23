@@ -1,6 +1,9 @@
 /* ===== ResumePro v3 - DeepSeek + Dynamic Templates + Edit ===== */
 
-// DeepSeek API config
+// ===== API CONFIG =====
+// 安全警告：API Key 在前端代码中完全可见。
+// 生产环境应将请求转发到自己的后端服务，避免 Key 泄露。
+// 临时解决方案：在 DeepSeek 控制台设置用量限制和频率限制。
 var DEEPSEEK_URL = 'https://api.deepseek.com/chat/completions';
 var DEEPSEEK_KEY = 'sk-777966a396474b328c5afbafdd8eed34';
 // 模型分工：Pro用于质量优先(生成/优化)，Flash用于速度/成本优先(分析/提取)
@@ -64,7 +67,8 @@ function showToast(msg,type){
 
 // ========== DEEPSEEK API ==========
 // model: 可选 'pro'|'flash'，默认flash（节省成本）
-function callDeepSeek(prompt, callback, opt_model) {
+// systemMsg: 可选，作为system角色发送（用于对话类任务）
+function callDeepSeek(prompt, callback, opt_model, systemMsg) {
   var model = opt_model === 'pro' ? MODEL.PRO : MODEL.FLASH;
   var xhr = new XMLHttpRequest();
   xhr.open('POST', DEEPSEEK_URL, true);
@@ -79,18 +83,27 @@ function callDeepSeek(prompt, callback, opt_model) {
         callback(null, text);
       } catch(e) { callback(e); }
     } else {
-      callback(new Error('API error: ' + xhr.status));
+      var errMsg = 'API请求失败(' + xhr.status + ')';
+      try { var errResp = JSON.parse(xhr.responseText); if (errResp.error) errMsg += ': ' + errResp.error.message; } catch(e) {}
+      callback(new Error(errMsg));
     }
   };
-  xhr.onerror = function() { callback(new Error('Network error')); };
-  xhr.ontimeout = function() { callback(new Error('Timeout')); };
-  // Generator用更大tokens，分析类用较小tokens
+  xhr.onerror = function() { callback(new Error('网络连接失败，请检查网络后重试')); };
+  xhr.ontimeout = function() { callback(new Error('请求超时，请稍后重试')); };
+  // 根据任务类型分配合理token数
   var isGenerator = prompt.indexOf('"experiences"') !== -1;
-  var isAnalysis = prompt.indexOf('提取') !== -1 && prompt.indexOf('对话') !== -1;
+  var isAnalysis = prompt.indexOf('提取') !== -1;
+  // 生成完整简历需要更多token；分析类精简；其他任务中等
+  var maxTokens = 4096;
+  if (isGenerator) maxTokens = 4096;       // 完整简历生成需大token
+  else if (isAnalysis) maxTokens = 1024;    // 信息提取保持精简
+  var messages = [];
+  if (systemMsg) messages.push({ role: 'system', content: systemMsg });
+  messages.push({ role: 'user', content: prompt });
   xhr.send(JSON.stringify({
     model: model,
-    messages: [{ role: 'user', content: prompt }],
-    max_tokens: isGenerator ? 2048 : (isAnalysis ? 512 : 4096),
+    messages: messages,
+    max_tokens: maxTokens,
     temperature: isAnalysis ? 0.3 : 0.7,
     thinking: { type: 'disabled' }
   }));
@@ -373,17 +386,17 @@ function parseUserInput(input) {
   if(mm)info.major=mm[1].replace(/专业|方向/g,'');
   // 中文求职意向匹配（多层尝试）
   // 模式1: "想找XX的工作" / "想做XX方向"
-  var tm=input.match(/(?:想找|想做)\s*([一-龥a-zA-Z+]{2,10}(?:工程师|经理|专员|助理|运营|设计|开发|分析|架构|师|员|代表|顾问|主播|投手|媒体|电商|市场|销售|客服|产品|教练|老师|讲师|教练))\s*(?:的|方面|方向|岗位|职位|工作)?/i);
-  // 模式2: "求职意向:XX" / "应聘XX" / "岗位:XX"
+  var tm=input.match(/(?:想找|想做)\s*([一-龥a-zA-Z+]{2,10}(?:工程师|经理|专员|助理|运营|设计|开发|分析|架构|师|员|代表|顾问|主播|投手|媒体|电商|市场|销售|客服|产品|教练|老师|讲师|导师|护士|医|医生|药剂|律师|会计|出纳|保安|导游|翻译|主持|经纪|策划|营养|健身|教练|剪辑|摄影|造价|监理|预算|施工|质检|安防|物流|采购|仓储|招商|督导|培训|招聘|人事|财务|审计|法务|秘书|助理|文员|前台|店长|厨师|美容|发型))\s*(?:的|方面|方向|岗位|职位|工作)?/i);
+  // 模式2: "求职意向:XX" / "应聘XX" / "岗位:XX" — 不限后缀，捕捉完整岗位名
   if(!tm) tm=input.match(/(?:求职意向[：:]\s*|应聘[：:\s]*|岗位[：:]\s*|目标岗位[：:]\s*|意向岗位[：:]\s*)([一-龥a-zA-Z+、/]{2,20})/i);
   // 模式3: 英文 "looking for X position" / "seeking X role"
   if(!tm) tm=input.match(/(?:looking\s+for|seeking|applying\s+for|target(?:ing)?\s+)(?:a\s+|an\s+)?(.{3,40}?)\s*(?:position|role|job|方向|岗位|职位|工作|的)/i);
   // 模式4: "X方向" / "X岗位" / "X职位" / "X的工作"
-  if(!tm) tm=input.match(/([一-龥a-zA-Z+]{2,15}(?:工程师|经理|专员|助理|运营|设计|开发|分析|架构|师|员|代表|顾问|教练|老师|讲师))\s*(?:方向|岗位|职位|工作)/i);
+  if(!tm) tm=input.match(/([一-龥a-zA-Z+]{2,15}(?:工程师|经理|专员|助理|运营|设计|开发|分析|架构|师|员|代表|顾问|教练|老师|讲师|导师|医生|律师|会计|翻译|主持|经纪|策划|剪辑|摄影|护士|药剂|秘书|助理|文员|导游|保安|监理|物流|采购|店长|厨师|美容))\s*(?:方向|岗位|职位|工作)/i);
   // 模式5: 英文 "X position/role/job" at end of line or before comma
   if(!tm) tm=input.match(/([A-Za-z\s&]{3,30}?)\s*(?:position|role|job)(?:\s|,|$)/i);
   if(tm)info.title=tm[1].trim();
-  var pm=input.match(/(?:电话[：:]\s*|手机[：:]\s*)(\d{11})/)||input.match(/(\d{11})/);
+  var pm=input.match(/(?:电话[：:]\s*|手机[：:]\s*)(1[3-9]\d{9})/)||input.match(/(?:^|[\s,，、])(1[3-9]\d{9})(?:$|[\s,，、])/);
   if(pm)info.phone=pm[1];
   var em=input.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
   if(em)info.email=em[1];
@@ -521,7 +534,7 @@ function generateLocalResumeData(userInput) {
 
   return {
     name:name||'未填写', title:title||'求职者',
-    phone:info.phone||(name?'138'+String(Math.floor(Math.random()*90000000+10000000)):''),email:info.email||(name?name.replace(/[一-龥]/g,function(c){var map={'赵':'zhao','钱':'qian','孙':'sun','李':'li','周':'zhou','吴':'wu','郑':'zheng','王':'wang','冯':'feng','陈':'chen','褚':'chu','卫':'wei','蒋':'jiang','沈':'shen','韩':'han','杨':'yang','朱':'zhu','秦':'qin','尤':'you','许':'xu','何':'he','吕':'lv','施':'shi','张':'zhang','孔':'kong','曹':'cao','严':'yan','华':'hua','金':'jin','魏':'wei','陶':'tao','姜':'jiang','刘':'liu','黄':'huang','马':'ma','林':'lin','郭':'guo','胡':'hu','徐':'xu','梁':'liang','罗':'luo','高':'gao'};return map[c]||'x';})+'@email.com':''),location:info.location||'',
+    phone:info.phone||'',email:info.email||'',location:info.location||'',
     school:school,major:major,degree:info.degree||'本科',
     eduStart:'2021.09',eduEnd:'2025.06',
     selfEval:SMART_FILL.generateSelfEval(name,school,major,title),
@@ -571,7 +584,7 @@ function handleFreeInput() {
     return;
   }
 
-  var btn=document.querySelector('#gen-mode-free button');
+  var btn=document.getElementById('gen-free-btn');
   var origHTML=btn.innerHTML;
   btn.disabled=true;btn.innerHTML='<span class="spinner"></span> 生成中...';
 
@@ -869,9 +882,9 @@ function renderGeneratedResume() {
   bindResumeEdit();
 }
 
-function injectTemplateColors(tpl) {
+function injectTemplateColors(tpl, rootEl) {
   var c=tpl.colors||state.templates.default?.colors||{};
-  var root=document.getElementById('gen-preview');
+  var root=rootEl||document.getElementById('gen-preview');
   if(!root)return;
   root.style.setProperty('--tpl-primary',c.primary||'#4E7282');
   root.style.setProperty('--tpl-accent',c.accent||'#4E7282');
@@ -889,12 +902,18 @@ function boldText(escapedHtml) {
   return escapedHtml.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 }
 
-// 清理STAR标签前缀(S:/T:/A:/R:)，让简历内容对HR更友好
+// 清理STAR/STAR标签前缀及完整英文写法
 function cleanForDisplay(text) {
   if (!text) return '';
-  return text.replace(/^[•·\-]\s*[STAR][：:\s]*(?:背景|任务|行动|结果|任务\+[Aa]行动)?[：:\s]*/g, '')
-    .replace(/^[STAR][：:\s]*(?:背景|任务|行动|结果|任务\+[Aa]行动)?[：:\s]*/g, '')
-    .replace(/^\s*[•·\-]\s*/g, '• ');
+  return text
+    // 带前缀的STAR简写: "S:背景", "T:任务", "A:行动", "R:结果"
+    .replace(/^[•·\-]\s*[STAR][：:\s]*(?:背景|任务|行动|结果|任务\+[Aa]ction)?[：:\s]*/gm, '')
+    // 不带前缀: "Situation:...", "Task:...", "Action:...", "Result:..."
+    .replace(/^(?:Situation|Task|Action|Result)[：:\s]+/gim, '')
+    // 散装的S/T/A/R:前缀
+    .replace(/^[STAR][：:\s]+/gm, '')
+    // 统一列表符号
+    .replace(/^\s*[•·\-]\s*/gm, '• ');
 }
 
 function buildResumeHTML(data, template) {
@@ -1214,6 +1233,7 @@ function runOptimization() {
 
   var resultsEl = document.getElementById('opt-results');
   var loadingEl = document.getElementById('opt-loading');
+  var progressTimer = null;
   if (!loadingEl) {
     loadingEl = document.createElement('div');
     loadingEl.id = 'opt-loading';
@@ -1244,14 +1264,13 @@ function runOptimization() {
     var otext = loadingEl.querySelector('.gen-progress-text');
     var otexts = ['正在解析简历结构...', '正在与岗位JD进行匹配分析...', '正在应用STAR法则智能改写...', '正在生成优化报告...'];
     var oidx = 0;
-    var otimer = setInterval(function() {
+    progressTimer = setInterval(function() {
       oidx++;
-      if (oidx >= 4) { clearInterval(otimer); return; }
+      if (oidx >= 4) { clearInterval(progressTimer); progressTimer = null; return; }
       osteps[oidx].classList.add('active');
       obar.style.width = ((oidx+1)*25) + '%';
       otext.textContent = otexts[oidx];
     }, 1500);
-    loadingEl._progressTimer = otimer;
   }
 
   // Section-aware resume optimization with anti-fabrication guardrails
@@ -1317,8 +1336,9 @@ function runOptimization() {
       }
     }
     state.optimizerResult = result;
+    if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
     var loadingEl2 = document.getElementById('opt-loading');
-    if (loadingEl2) { if (loadingEl2._progressTimer) clearInterval(loadingEl2._progressTimer); loadingEl2.remove(); }
+    if (loadingEl2) loadingEl2.remove();
 
     // Display basic results immediately
     displayOptimizerResult(result);
@@ -1622,15 +1642,9 @@ function previewTemplate(id){
   document.getElementById('tpl-preview-name').textContent=tpl.name+' - 预览';
   document.getElementById('tpl-preview-content').innerHTML=buildResumeHTML(sample,tpl);
   document.getElementById('tpl-preview-content').className='resume-page sidebar-left';
-  injectTemplateColorsTo(tpl,document.getElementById('tpl-preview-content'));
+  injectTemplateColors(tpl, document.getElementById('tpl-preview-content'));
   document.getElementById('template-preview-modal').style.display='flex';
   document.getElementById('tpl-apply-btn').onclick=function(){state.selectedTemplate=id;updateTemplateSelector();var at=document.querySelector('#template-tabs .tab.active');renderTemplateGrid(at?at.dataset.cat:'all');closeTemplatePreview();showToast('已应用模板：'+escHtml(tpl.name));if(state.generator.initialized)renderGeneratedResume();};
-}
-function injectTemplateColorsTo(tpl,root){
-  var c=tpl.colors||state.templates.default?.colors||{};
-  root.style.setProperty('--tpl-primary',c.primary||'#4E7282');root.style.setProperty('--tpl-accent',c.accent||'#4E7282');
-  root.style.setProperty('--tpl-sidebar',c.sidebar||'#F5F7F8');root.style.setProperty('--tpl-text',c.text||'#333');
-  root.style.setProperty('--tpl-border',c.border||'#E0E4E6');root.style.setProperty('--tpl-section-line',c.sectionLine||c.primary||'#4E7282');
 }
 function closeTemplatePreview(){document.getElementById('template-preview-modal').style.display='none';}
 
@@ -1684,8 +1698,10 @@ function sendCareerMsg() {
   document.getElementById('career-quick-actions').style.display = 'none';
   document.getElementById('career-result-action').style.display = 'none';
 
-  // 构建对话历史
-  var convo = careerState.messages.map(function(m) {
+  // 构建对话历史，最多保留最近10轮
+  var maxHistory = 10;
+  var recentMessages = careerState.messages.slice(-maxHistory * 2);
+  var convo = recentMessages.map(function(m) {
     return { role: m.role, content: m.content };
   });
   convo.push({ role: 'user', content: userText });
@@ -1704,7 +1720,7 @@ function sendCareerMsg() {
     '9. 最后一定要问用户"要不要我帮你针对[推荐岗位]生成一份简历？"\n\n'+
     '【重要】你是小职，一个热心的职业顾问。你不是AI，不是DeepSeek，不是机器人。你就是小职本人。';
 
-  callDeepSeek(systemPrompt + '\n\n' + convo.map(function(m) {
+  callDeepSeek(convo.map(function(m) {
     return (m.role === 'user' ? '用户' : '小职') + '：' + m.content;
   }).join('\n\n') + '\n\n小职：', function(err, aiText) {
     // 移除输入中动画
@@ -1717,10 +1733,11 @@ function sendCareerMsg() {
     reply = reply.replace(/^小职[：:]\s*/g, '').trim();
     if (!reply) reply = '让我想想...你的情况比较特殊，能再多说一些你的兴趣和经历吗？';
 
-    // 提取建议的岗位方向
+    // 提取建议的岗位方向 — 统一的后缀匹配列表
+    var TITLE_SUFFIXES = ['工程师','经理','专员','助理','运营','设计','开发','分析','架构','师','员','代表','顾问','主播','投手','媒体','电商','市场','销售','客服','产品','数据','教练','老师','讲师','导师','医生','护士','律师','会计','翻译','主持','经纪','策划','剪辑','摄影','秘书','导游','保安','监理','物流','采购','店长','厨师','美容','发型','营养','造价','预算','施工','质检','仓储'].join('|');
     // 优先匹配系统提示词要求的格式："要不要我帮你针对[岗位]生成一份简历？"
-    var titleMatch = reply.match(/针对[「"""]?([一-龥a-zA-Z+]{2,16}(?:工程师|专员|经理|运营|设计师|分析师|优化师|开发|助理|代表|顾问|投手|主播|媒体|电商|市场|销售|客服|产品|数据|师|员))[」"""]?/);
-    if (!titleMatch) titleMatch = reply.match(/(?:推荐|建议).*(?:岗位|方向|职位)[：:\s]*[是为]?[「"“]?([一-龥a-zA-Z+]{2,12}(?:工程师|专员|经理|运营|设计师|分析师|优化师|开发|助理|代表|顾问|投手|主播|媒体|电商|市场|销售|客服|产品|数据|师|员))[」"”]?/);
+    var titleMatch = reply.match(new RegExp('针对[「"""]?([一-龥a-zA-Z+]{2,16}(?:' + TITLE_SUFFIXES + '))[」"""]?'));
+    if (!titleMatch) titleMatch = reply.match(new RegExp('(?:推荐|建议).*(?:岗位|方向|职位)[：:\\s]*[是为]?[「"“]?([一-龥a-zA-Z+]{2,12}(?:' + TITLE_SUFFIXES + '))[」"”]?'));
     if (titleMatch) {
       careerState.suggestedTitle = titleMatch[1];
       careerState.suggestedField = titleMatch[1];
@@ -1729,13 +1746,15 @@ function sendCareerMsg() {
     if (!careerState.suggestedTitle) {
       var genMatch = reply.match(/(?:针对|帮你|为你|给你).{0,8}(?:生成|写|做|制作|准备).{0,6}(?:简历|求职)/);
       if (genMatch) {
-        var innerMatch = genMatch[0].match(/(?:针对|帮你|为你|给你)[「"""]?([一-龥a-zA-Z+]{2,16}(?:工程师|专员|经理|运营|设计师|分析师|优化师|主播|投手|开发|助理|代表|顾问|媒体|电商|市场|销售|客服|产品|数据|师|员))[」"""]?/);
+        var innerMatch = genMatch[0].match(new RegExp('(?:针对|帮你|为你|给你)[「"""]?([一-龥a-zA-Z+]{2,16}(?:' + TITLE_SUFFIXES + '))[」"""]?'));
         if (innerMatch) careerState.suggestedTitle = innerMatch[1];
       }
     }
-    // 更宽松的中文匹配
+    // 更宽松的中文匹配 — 前缀词+后缀匹配
     if (!careerState.suggestedTitle) {
-      var altMatch = reply.match(/([一-龥a-zA-Z]{2,4}(?:运营|开发|设计|工程|产品|市场|销售|数据|媒体|客服|人力|财务|行政|分析|跨境|出海|芯片|硬件|嵌入|算法|大模型|AIGC|广告))(?:师|专员|经理|助理|代表|员|工程师|优化师|投手|主播)?/);
+      var PREFIXES = ['运营','开发','设计','工程','产品','市场','销售','数据','媒体','客服','人力','财务','行政','分析','跨境','出海','芯片','硬件','嵌入','算法','大模型','AIGC','广告','室内','平面','UI','UX','前端','后端','全栈','测试','游戏','电商','直播','短视频','内容','文案','策划','招聘','培训','薪酬','绩效','员工','组织','战略','品牌','公关','媒介','活动','社群','渠道','商务','采购','物流','仓储','供应链','质量','安全','环保','医疗','教育','培训','健身','美容','餐饮','酒店','旅游','保险','金融','证券','基金','期货','理财','法务','合规','审计','税务','外贸','跟单','销售','市场','品牌','产品','研发','供应','计划','采购','质量','体系','行政','人力','财务','IT','法务','合规','内控','审计','咨询','顾问','实施','运维','测试','开发','算法','研究','科学','工程','架构','专家','总监','经理','主管','组长','主任'];
+      var prefixStr = PREFIXES.join('|');
+      var altMatch = reply.match(new RegExp('([一-龥a-zA-Z]{2,4}(?:' + prefixStr + '))(?:' + TITLE_SUFFIXES + ')?'));
       if (altMatch) careerState.suggestedTitle = altMatch[0];
     }
     // 英文岗位匹配兜底
@@ -1764,7 +1783,7 @@ function sendCareerMsg() {
     // 保存到state
     careerState.messages.push({ role: 'user', content: userText });
     careerState.messages.push({ role: 'assistant', content: reply });
-  }, 'pro');
+  }, 'pro', systemPrompt);
 }
 
 function addChatMessage(type, text) {
@@ -1953,6 +1972,55 @@ function applyCareerSuggestion() {
 // ========== UTILS ==========
 function escHtml(s){if(!s)return'';var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
 
+// ========== AUTO-SAVE GENERATOR STATE ==========
+function saveGeneratorDraft() {
+  try {
+    var g = state.generator;
+    var draft = {
+      name: g.name, title: g.title, phone: g.phone, email: g.email, location: g.location,
+      school: g.school, major: g.major, degree: g.degree, eduStart: g.eduStart, eduEnd: g.eduEnd, majorCourses: g.majorCourses,
+      selfEval: g.selfEval, languages: g.languages, campusExp: g.campusExp,
+      experiences: g.experiences,
+      skills: g.skills, certs: g.certs
+    };
+    localStorage.setItem('resumepro-generator-draft', JSON.stringify(draft));
+  } catch(e) {/* ignore storage errors */}
+}
+function loadGeneratorDraft() {
+  try {
+    var data = localStorage.getItem('resumepro-generator-draft');
+    if (!data) return;
+    var draft = JSON.parse(data);
+    var g = state.generator;
+    Object.keys(draft).forEach(function(k) { if (draft[k] !== undefined) g[k] = draft[k]; });
+  } catch(e) {/* ignore */}
+}
+
+// ========== KEYBOARD SHORTCUTS ==========
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') { closeImportModal(); closeTemplatePreview(); }
+  // Ctrl+Enter shortcuts
+  if (e.ctrlKey && e.key === 'Enter') {
+    var active = document.activeElement;
+    if (!active) return;
+    // 优化器
+    if (active.id === 'opt-input' || active.id === 'opt-jd') { e.preventDefault(); runOptimization(); return; }
+    // 生成器自由输入
+    if (active.id === 'gen-free-input') { e.preventDefault(); handleFreeInput(); return; }
+    // 职业聊天
+    if (active.id === 'career-chat-input') { e.preventDefault(); sendCareerMsg(); return; }
+  }
+});
+
 // ========== INIT ==========
-document.addEventListener('DOMContentLoaded',function(){loadTemplates();});
-document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeImportModal();closeTemplatePreview();}});
+document.addEventListener('DOMContentLoaded',function(){
+  loadTemplates();
+  loadGeneratorDraft();
+  // 向导步骤5 → 预览就保存草稿
+  var origNext = generatorNext;
+  window.generatorNext = function(step) {
+    if (step === 4) saveGeneratorDraft();
+    origNext(step);
+  };
+});
+
