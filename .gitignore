@@ -8,3 +8,6 @@ screenshot*.png
 shot*.png
 ux-*.png
 ux-audit/
+test.py
+ux-audit.py
+screenshot-apple.py

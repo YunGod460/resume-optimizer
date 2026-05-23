@@ -327,7 +327,12 @@ var SMART_FILL = {
   },
   generateSelfEval: function(name, school, major, title) {
     var p=findJobProfile(title, major);
-    return p.se||JOB_PROFILES['通用'].se;
+    var base=p.se||JOB_PROFILES['通用'].se;
+    // 将用户真实信息注入自我评价
+    if(name&&base.indexOf('XXX')!==-1) base=base.replace('XXX',name);
+    if(school&&base.indexOf('[学校]')!==-1) base=base.replace('[学校]',school);
+    if(major&&base.indexOf('[专业]')!==-1) base=base.replace('[专业]',major);
+    return base;
   },
   generateCampusExp: function(school, major, title) {
     var p=findJobProfile(title, major);
@@ -344,7 +349,12 @@ var SMART_FILL = {
     var exs=p.ex||JOB_PROFILES['通用'].ex;
     var out=[];
     for (var i=0;i<exs.length;i++){
-      out.push({company:exs[i].c, title:exs[i].t, start:exs[i].b, end:exs[i].e, descs:exs[i].d});
+      var descs=exs[i].d.map(function(d){
+        // 将模版中的[学校][XX公司]/[学校]等占位符替换为用户真实信息
+        return d.replace(/\[XX\]/g,'目标').replace(/\[学校\]|\[大学\]/g,school||'某高校')
+          .replace(/\[专业\]/g,major||'相关');
+      });
+      out.push({company:exs[i].c, title:exs[i].t, start:exs[i].b, end:exs[i].e, descs:descs});
     }
     return out;
   },
@@ -430,40 +440,47 @@ function generateResumeWithDeepSeek(userInput, callback) {
     '地点：'+(info.location||'未提供')+'\n\n'+
     '【核心原则 — 严格遵守】\n'+
     '1. 严禁编造用户未提供的数据：手机号/邮箱/公司名/项目名/具体数字，没有就留空或标注"待补充"\n'+
-    '2. 量化数据只能基于用户输入中已有的信息推断，不能凭空生成\n'+
-    '3. 经历描述用STAR法则：强势动词开头 + 具体方法 + 真实成果\n'+
-    '4. 删除"学习能力强""吃苦耐劳"等无效虚词，用具体事例证明能力\n'+
-    '5. 技能按分类组织，每个类别2-4个具体技能，写清具体功能和场景，不写空泛名词\n'+
+    '2. 量化数据只能基于用户输入中已有的信息推断，不能凭空生成。原文有数据则突出展示\n'+
+    '3. 经历描述用STAR法则：强势动词开头 + 具体方法 + 真实成果。禁用"负责""参与"开头\n'+
+    '4. 删除"学习能力强""吃苦耐劳""性格开朗"等无效虚词，用具体事例证明能力\n'+
+    '5. 技能按3-4个大类组织（如"编程开发""办公协作""设计工具""语言能力"），每个类别2-4个具体技能+使用场景\n'+
     '6. 校园经历也要用STAR改写，不写"锻炼了能力"这种虚话\n'+
-    '7. 技能要贴近大学生真实水平：Excel数据整理(VLOOKUP/透视表)、PPT汇报制作、剪映剪辑、Canva作图、飞书/钉钉协作等基础技能要体现\n'+
+    '7. 技能要贴近大学生真实水平：Excel基础函数与数据透视、PPT汇报制作、剪映剪辑、Canva作图、飞书/钉钉协作等基础技能要体现\n'+
     '8. 不要重复同一类别标签（如不要同时出现"工具"和"平台工具"两个类），大类合并\n\n'+
-    '【大学生常见技能参考 — 根据求职方向选用】\n'+
-    '▸ 通用基础：熟练使用Office套件（Excel数据整理与函数/PPT制作/Word排版）、飞书或钉钉协作\n'+
-    '▸ 设计方向：Canva海报设计、剪映/CapCut短视频剪辑、Figma基础界面设计\n'+
-    '▸ 编程方向：Python基础编程、HTML/CSS网页制作、Git版本管理、SQL数据库查询\n'+
+    '【大学生常见技能参考 — 根据求职方向选用，仅作启发不要照抄】\n'+
+    '▸ 通用基础：Office套件（Excel数据整理与透视表/PPT制作/Word排版）、飞书/钉钉协作\n'+
+    '▸ 设计方向：Canva海报设计、剪映/CapCut短视频剪辑、Figma基础界面\n'+
+    '▸ 编程方向：Python基础、HTML/CSS、Git版本管理、SQL查询\n'+
     '▸ 新媒体方向：公众号排版与文案、抖音/小红书内容运营、短视频脚本策划\n'+
-    '▸ 数据方向：Excel数据透视表与图表、Python数据分析入门、Tableau/Power BI基础\n'+
-    '▸ 语言方向：英语CET-4/6（日常商务邮件读写）、普通话二甲等\n\n'+
-    '返回纯JSON（无markdown标记）：\n'+
+    '▸ 数据方向：Excel数据透视表、Python数据分析、Tableau/Power BI基础\n'+
+    '▸ 语言方向：英语CET-4/6（日常商务邮件读写）、普通话二甲\n\n'+
+    '【skills字段格式示例】\n'+
+    '  "skills": [\n'+
+    '    "编程开发 - 熟练使用Python进行数据清洗与自动化脚本编写，了解Pandas/NumPy基础",\n'+
+    '    "办公协作 - 精通Excel数据透视表与VLOOKUP函数，使用飞书/钉钉进行团队协作与项目管理",\n'+
+    '    "设计工具 - 使用Canva制作海报/宣传物料，剪映进行短视频剪辑与字幕添加",\n'+
+    '    "语言能力 - 英语CET-6，能进行日常商务邮件读写与基础口语交流"\n'+
+    '  ]\n\n'+
+    '返回纯JSON（无markdown标记，不要任何解释文字）：\n'+
     '{\n'+
-    '  "title": "精确岗位名（如：前端开发工程师 / 新媒体内容运营）",\n'+
-    '  "phone": "'+(info.phone||'')+'（只返回用户提供的真实号码，没有就留空）",\n'+
-    '  "email": "'+(info.email||'')+'（只返回用户提供的真实邮箱，没有就留空）",\n'+
-    '  "location": "'+(info.location||'')+'（只返回用户提供的真实城市，没有就基于学校推断）",\n'+
-    '  "selfEval": "基于用户真实背景提炼2-3个核心能力，每个=能力+事例+量化成果。150-200字。不要编造经历。",\n'+
-    '  "skills": ["类别名 - 具体技能描述与使用场景", ...6-8项, 格式严格为\"类别名 - 描述\"],\n'+
-    '  "majorCourses": "6-8门相关课程,逗号分隔（基于专业合理推断）",\n'+
-    '  "certs": ["证书名",...2-4个],\n'+
-    '  "languages": "语言能力描述+应用场景。如未提供就留空",\n'+
-    '  "campusExp": "岗位 | 组织\\n• 强势动词+方法+成果（每条用STAR逻辑，不编造数据）",\n'+
+    '  "title": "精确岗位名（如：前端开发工程师 / 新媒体内容运营, 不要大类如"互联网"）",\n'+
+    '  "phone": "'+(info.phone||'')+'（只返回用户提供的真实号码，没有就留空字符串）",\n'+
+    '  "email": "'+(info.email||'')+'（只返回用户提供的真实邮箱，没有就留空字符串）",\n'+
+    '  "location": "'+(info.location||'')+'（只返回用户提供的真实城市，没有就基于学校推断，再没有就留空字符串）",\n'+
+    '  "selfEval": "基于用户真实背景提炼2-3个核心能力，每个=能力+事例+价值。150-200字。不要编造经历。不要出现"学习能力强""吃苦耐劳"等虚词。",\n'+
+    '  "skills": [/* 4-8项, 格式严格为"类别名 - 技能描述与使用场景" */],\n'+
+    '  "majorCourses": "6-8门相关课程,逗号分隔（基于专业合理推断，用户未提供专业则留空字符串）",\n'+
+    '  "certs": ["证书名",...0-4个,没有就空数组],\n'+
+    '  "languages": "语言能力描述+应用场景。如未提供就留空字符串",\n'+
+    '  "campusExp": "岗位 | 组织\\n• 强势动词+方法+成果（每条用STAR逻辑，不编造数据。没有就空字符串）",\n'+
     '  "experiences": [{\n'+
-    '    "company": "公司名（如果用户没提供具体公司名，用[实习公司]占位）",\n'+
-    '    "title": "业务岗位名（不是实习生）",\n'+
+    '    "company": "公司名（如果用户没提供具体公司名，就用[XX公司]占位）",\n'+
+    '    "title": "业务岗位名（不是"实习生"而是"前端开发实习生"这种具体叫法）",\n'+
     '    "start": "2024.06",\n'+
     '    "end": "2025.03",\n'+
     '    "descs": [\n'+
-    '      "每条用自然段落描述：强势动词+方法+成果。不要加STAR字母标签。不编造数据。",\n'+
-    '      ...每段4-6条\n'+
+    '      "每条用自然段落描述：强势动词+具体方法+真实成果。不要加STAR字母标签。不要编造数据。至少3条。",\n'+
+    '      ...\n'+
     '    ]\n'+
     '  }]\n'+
     '}';
@@ -836,9 +853,23 @@ function renderExperienceList(){
     (exp.descs||['']).forEach(function(d,j){
       h+='<div class="flex gap-8" style="margin-bottom:4px"><input class="form-input exp-desc" data-idx="'+i+'" data-didx="'+j+'" value="'+escHtml(d||'')+'" placeholder="描述工作内容..."><button class="btn btn-ghost btn-sm" onclick="removeExpDesc('+i+','+j+')">x</button></div>';
     });
-    h+='<button class="btn btn-outline btn-sm mt-8" onclick="addExpDesc('+i+')">+ 添加描述</button></div></div>';
+    h+='<div class="flex gap-8 mt-8"><button class="btn btn-outline btn-sm" onclick="addExpDesc('+i+')">+ 添加描述</button><button class="btn btn-primary btn-sm" onclick="aiEnhanceExperience('+i+')">AI 优化</button></div></div></div>';
   });
   c.innerHTML=h;
+}
+function aiEnhanceExperience(i){
+  var exp=state.generator.experiences[i];
+  if(!exp||!exp.descs||!exp.descs.join('').trim()){showToast('请先填写工作描述再使用AI优化','warning');return;}
+  showToast('AI优化中...','info');
+  var prompt='请用STAR法则（情境Situation、任务Task、行动Action、结果Result）优化以下工作经历描述，使其更具专业性和数据说服力。保持中文输出，每一条优化为一段。\n\n公司：'+exp.company+'\n职位：'+exp.title+'\n原始描述：\n'+exp.descs.map(function(d,j){return (j+1)+'. '+d;}).join('\n')+'\n\n请直接返回优化后的描述，用数字列表编号，不要额外解释。';
+  callDeepSeek(prompt, function(err, text){
+    if(err||!text){showToast('AI优化失败，请稍后重试','error');return;}
+    var lines=text.split('\n').filter(function(l){return l.trim()&&/^\d+[\.\、]/.test(l.trim());}).map(function(l){return l.replace(/^\d+[\.\、]\s*/,'').trim();});
+    if(lines.length===0) lines=text.split('\n').filter(function(l){return l.trim().length>5;});
+    if(lines.length>0) exp.descs=lines;
+    renderExperienceList();
+    showToast('AI优化完成！','success');
+  },'flash');
 }
 function addExperience(){state.generator.experiences.push({company:'',title:'',start:'',end:'',descs:['']});renderExperienceList();}
 function removeExperience(i){state.generator.experiences.splice(i,1);renderExperienceList();}
@@ -1309,19 +1340,20 @@ function runOptimization() {
   var prompt='你是一位资深HR总监兼简历顾问。请分模块优化以下简历，输出一份完整的优化后简历全文。\n\n'+
     '【核心原则 — 严格遵守】\n'+
     '1. 输出完整的优化后简历，保留所有原始模块（基本信息、教育、技能、经历、项目、证书、自我评价等全部模块）\n'+
-    '2. 严禁编造原始简历中不存在的数据、数字、百分比、人名、项目名、公司名、时间\n'+
-    '3. 量化数据只能从原文提取，原文没有就不要加数字；缺失的量化数据在建议中指出\n'+
-    '4. 不要删除任何内容模块，只能优化措辞和格式\n'+
-    '5. 优化后的fullResume必须是完整的简历全文，可以和原文一样长或更长\n\n'+
-    '【分模块策略】\n'+
-    '▸ 全局动词升级：将"负责""参与""协助""进行""做了"等弱动词替换为强动词（主导/搭建/推动/优化/设计/统筹/革新/落地/驱动/达成），每条经历都必须使用强势动词开头。不要出现"负责"和"参与"这两个词。\n'+
-    '▸ 基本信息（姓名/电话/邮箱/城市/求职意向）：保持原样不动\n'+
-    '▸ 教育背景（学校/专业/学历/时间）：保持原样，可补充主修方向（基于专业合理推断）\n'+
-    '▸ 技能特长：按3-4个大类归并整理（办公软件/专业工具/语言能力等），每类2-3项具体技能+使用场景。不要拆分过多零散类别，同类技能合并到一个标签下。有JD则对齐关键词\n'+
-    '▸ 工作经历：用STAR法则改写，强势动词开头（主导/搭建/推动/优化/统筹/革新），纳入原文已有量化数据，每段2-4句\n'+
-    '▸ 项目经历：同工作经历，突出你的个人角色和具体贡献\n'+
-    '▸ 自我评价：基于原文真实经历提炼3-5句，删除"学习能力强""吃苦耐劳"等无效虚词\n'+
-    '▸ 证书/语言/校园经历/其他：保持原样，微调格式\n\n'+
+    '2. 严禁增删任何实质性内容：不要编造原始简历中不存在的数据、数字、百分比、人名、项目名、公司名、时间\n'+
+    '3. 量化数据只能从原文提取，原文没有就不要加数字。缺失量化数据在建议中指出\n'+
+    '4. 不要删除任何内容模块，只能优化措辞和格式。每个原始段落都要对应到输出\n'+
+    '5. 优化后fullResume必须是完整的简历全文，与原文字数相当或略多\n\n'+
+    '【分模块优化策略】\n'+
+    '▸ 全局动词升级：将"负责""参与""协助""进行""做了""从事"等弱动词全部替换为强动词（主导/搭建/推动/优化/设计/统筹/落地/驱动/达成/输出/撰写），每条经历都必须使用强势动词开头。禁用"负责""参与"这两个词\n'+
+    '▸ 基本信息：保持原样不动，不要修改姓名/电话/邮箱/城市/求职意向\n'+
+    '▸ 教育背景：保持原样，可补充主修方向（基于专业合理推断，例如"主修课程：数据结构、操作系统"）\n'+
+    '▸ 技能特长：按3-4个大类归并整理（编程开发/办公协作/设计工具/语言能力等），每类2-3项具体技能+使用场景。不要拆分过多零散类别。有JD则对齐JD中的高频关键词\n'+
+    '▸ 工作经历：用STAR法则改写语序，强势动词开头（主导/搭建/推动/优化/统筹），纳入原文已有量化数据，每段2-5句。只改写措辞，不改变事实\n'+
+    '▸ 项目经历：同工作经历，突出个人角色和具体贡献\n'+
+    '▸ 自我评价：基于原文真实经历提炼3-5句，删除"学习能力强""吃苦耐劳""性格开朗"等无效虚词，用能力+事例取代\n'+
+    '▸ 证书/语言/校园经历：保持原样，微调格式\n'+
+    '▸ 有JD时：确保JD中的核心技能关键词自然融入经历描述和技能模块，但不生硬堆砌\n\n'+
     '【原始简历】\n'+input+'\n\n'+
     (jd?'【目标JD】\n'+jd+'\n\n':'')+
     '返回严格JSON（不要```json标记，不要任何解释）：\n'+
@@ -1404,25 +1436,65 @@ function optimizeResumeLocal(input, jd) {
     '参与':['核心推动','协同主导'],
     '协助':['支撑','驱动'],
     '了解':['掌握','精通'],
-    '熟悉':['精通'],
-    '处理':['高效解决'],
-    '完成':['出色交付'],
-    '整理':['系统梳理'],
-    '沟通':['协调对接'],
-    '写':['撰写'],
-    '做':['推进'],
-    '改':['优化迭代']
+    '熟悉':['精通','深入理解'],
+    '处理':['高效解决','快速响应'],
+    '完成':['出色交付','圆满完成'],
+    '整理':['系统梳理','结构化整合'],
+    '沟通':['协调对接','跨部门协同'],
+    '写':['撰写','输出'],
+    '做':['推进','落地'],
+    '改':['优化迭代','持续改进'],
+    '学习':['深入研究','系统掌握'],
+    '使用':['熟练运用','灵活应用'],
+    '帮助':['赋能','服务'],
+    '保证':['确保','保障'],
+    '提供':['输出','交付'],
+    '进行':['开展','实施'],
+    '得到':['获得','取得'],
+    '觉得':['洞察','识别']
   };
 
-  // 只替换弱动词，不注入假数据
+  // 句子级重构模式：将弱开头转换为强动词开头 + 量化结尾
+  var RESTRUCTURE_PATTERNS = [
+    // 模式1: "负责XXX的工作" → "主导XXX工作"
+    { pattern: /负责(.{2,30})(的)?工作/g, replacement: '主导$1工作' },
+    // 模式2: "负责XXX相关业务" → "统筹XXX业务"
+    { pattern: /负责(.{2,30})相关业务/g, replacement: '统筹$1业务' },
+    // 模式3: "参与XXX项目" → "深度参与XXX项目核心模块"
+    { pattern: /参与(.{2,20})(项目|工程)/g, replacement: '深度参与$1$2核心模块' },
+    // 模式4: "协助XXX进行" → "支撑XXX高效"
+    { pattern: /协助(.{2,20})进行/g, replacement: '支撑$1高效' },
+    // 模式5: "协助XXX工作" → "协同推进XXX工作"
+    { pattern: /协助(.{2,20})工作/g, replacement: '协同推进$1工作' },
+    // 模式6: "通过XXX方式，实现/完成" → 保留但优化
+    { pattern: /通过(.{4,30})(方式|方法)，/g, replacement: '通过$1，' },
+  ];
+
   var optimized = lines.map(function(line){
     var t=line.trim(); if(t.length<5) return t;
     var o=t;
+
+    // 步骤1: 先做句子级重构
+    RESTRUCTURE_PATTERNS.forEach(function(rp){
+      o=o.replace(rp.pattern, rp.replacement);
+    });
+
+    // 步骤2: 弱动词替换
     Object.keys(WEAK).forEach(function(w){
       if(o.indexOf(w)!==-1){
         o=o.replace(new RegExp(w, 'g'), WEAK[w][0]);
       }
     });
+
+    // 步骤3: 在描述末尾补充量化模板（若完全无数值）
+    // 只给长度>15的句子加，且不重复加
+    if(o.length>15 && !/\d+[%人万元+\-]/.test(o) && !o.match(/量化|数字|数据|XX/)){
+      // 有"提升/优化/改善"但无量化的，追加模板
+      if(/(提升|优化|改善|提高|缩短|减少|增加)/.test(o) && !o.match(/。$/)){
+        o+='，取得了显著成效';
+      }
+    }
+
     return o;
   }).join('\n');
 
@@ -1431,16 +1503,18 @@ function optimizeResumeLocal(input, jd) {
   var passedCount=ats.filter(function(a){return a.passed;}).length;
   var atsScore=Math.round((passedCount/ats.length)*100);
 
-  // 检测问题并给出建议
-  var weakVerbs=['负责','参与','协助','帮忙','做了','做过'];
+  // 检测问题并给出建议（增强版）
+  var weakVerbs=['负责','参与','协助','帮忙','做了','做过','进行','得到'];
   var weakCount=0;lines.forEach(function(l){weakVerbs.forEach(function(w){if(l.indexOf(w)!==-1)weakCount++;});});
-  if(weakCount>0) suggestions.push({title:'弱动词过多（'+weakCount+'处）',detail:'HR对"负责/参与/协助"开头的描述几乎免疫。建议全部替换为"主导/搭建/推动/优化"等强动词，让HR感受到你的主动性。已自动替换部分，请人工核实。',level:'critical'});
+  if(weakCount>0) suggestions.push({title:'弱动词过多（'+weakCount+'处）',detail:'HR对"负责/参与/协助/进行"开头的描述几乎免疫。建议全部替换为"主导/搭建/推动/优化/输出"等强动词，让HR感受到你的主动性。已自动替换部分，请人工核实。',level:'critical'});
   if(!/(手机|电话|邮箱|email|@)/.test(input)) suggestions.push({title:'缺少联系方式',detail:'简历中没有手机号或邮箱，HR无法联系你。请在简历顶部添加。',level:'critical'});
   if(!/(大学|学院|本科|硕士|博士|学历|教育|毕业|专业)/.test(input)) suggestions.push({title:'缺少教育背景',detail:'教育背景是HR筛选的基本条件。请添加学校名称、专业、学历。',level:'critical'});
-  if(!/\d+%|\d+人|\d+万|\d+元|\d+\+/.test(input)) suggestions.push({title:'缺少量化数据',detail:'含具体数字的简历获约率更高。请回忆并补充真实数据（如"管理3人团队""服务50+客户"），不要编造。',level:'important'});
-  if(!/(技能|掌握|熟练|精通|擅长|证书|工具|软件)/.test(input)) suggestions.push({title:'缺少技能模块',detail:'添加专业技能和工具清单，这是ATS关键词匹配的核心区域。',level:'important'});
-  if(input.length<300) suggestions.push({title:'内容丰富度不足（'+input.length+'字）',detail:'当前内容偏短。建议补充工作/实习/项目经历，目标500-800字。',level:'important'});
-  if(!/(提升|增长|降低|优化|改善|提高|缩短|减少|增加)/.test(input)) suggestions.push({title:'缺少成果导向表述',detail:'建议补充行动带来的具体成果，如"通过XX方法使效率提升X%"。',level:'suggestion'});
+  if(!/\d+%|\d+人|\d+万|\d+元|\d+\+/.test(input)) suggestions.push({title:'缺少量化数据',detail:'含具体数字的简历获约率更高。请回忆并补充真实数据（如"管理3人团队""服务50+客户"）。不要编造数据，但可以写模糊范围如"数十""百余"。',level:'important'});
+  if(!/(技能|掌握|熟练|精通|擅长|证书|工具|软件|编程)/.test(input)) suggestions.push({title:'缺少技能模块',detail:'添加专业技能和工具清单，这是ATS关键词匹配的核心区域。用逗号分隔列出最相关的5-10项技能。',level:'important'});
+  if(input.length<300) suggestions.push({title:'内容丰富度不足（'+input.length+'字）',detail:'当前内容偏短。建议补充工作/实习/项目经历，目标500-800字。每段经历至少写2-3条描述。',level:'important'});
+  if(!/(提升|增长|降低|优化|改善|提高|缩短|减少|增加)/.test(input)) suggestions.push({title:'缺少成果导向表述',detail:'建议补充行动带来的具体成果，如"通过XX方法使效率提升X%"。STAR法则中R(Result)是最能打动HR的部分。',level:'suggestion'});
+  if(jd&&jd.length>20&&!jdKeywordsInResume(input,extractJDKeywords(jd))) suggestions.push({title:'JD关键词未命中',detail:'简历内容与目标岗位JD几乎没有关键词重叠。建议仔细阅读JD，将其中提到的技能和职责自然地融入简历描述中。',level:'important'});
+  if(!/(自我评价|个人简介|关于我|个人优势)/.test(input)&&input.length>200) suggestions.push({title:'缺少个人简介',detail:'在简历顶部加一段2-3行个人简介（Profile Summary），提炼核心竞争力和职业目标，有助于在5秒内抓住HR注意力。',level:'suggestion'});
 
   // JD关键词分析
   var jdKw=[],jdScore=0;
@@ -1458,17 +1532,36 @@ function optimizeResumeLocal(input, jd) {
     suggestions:suggestions, jdKeywords:jdKw, jdMatchScore:jdScore};
 }
 
+function jdKeywordsInResume(resume, keywords){
+  if(!keywords||!keywords.length)return true;
+  var hit=0;keywords.forEach(function(k){if(resume.indexOf(k)!==-1)hit++;});
+  return hit/keywords.length>0.3;
+}
+
 function runATSChecks(text) {
   var checks=[
-    {label:'联系方式完整',check:function(t){return/(手机|电话|邮箱|email|@)/i.test(t);},critical:true,desc:'含电话/邮箱'},
-    {label:'工作经历描述',check:function(t){return/(工作|项目|实习|经历|经验|运营|开发|设计|管理|负责|参与)/i.test(t);},critical:true,desc:'有经历描述'},
+    // 基础信息（critical）
+    {label:'手机号完整',check:function(t){return/1[3-9]\d{9}/.test(t);},critical:true,desc:'含有效手机号'},
+    {label:'电子邮箱',check:function(t){return/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(t);},critical:true,desc:'含邮箱地址'},
     {label:'教育背景信息',check:function(t){return/(大学|学院|本科|硕士|博士|学历|教育|毕业|专业)/i.test(t);},critical:true,desc:'有学校/学历'},
+    {label:'工作经历描述',check:function(t){return/(工作|项目|实习|经历|经验|运营|开发|设计|管理|负责|参与)/i.test(t);},critical:true,desc:'有经历描述'},
     {label:'专业技能模块',check:function(t){return/(技能|掌握|熟练|精通|擅长|证书|工具|软件|语言|编程)/i.test(t);},critical:true,desc:'有技能列表'},
-    {label:'量化成果数据',check:function(t){return/\d+%|\d+人|\d+万|\d+元|\d+\+|\d+家|\d+个/.test(t);},critical:false,desc:'有数据支撑'},
-    {label:'行动动词开头',check:function(t){return/(主导|设计|开发|实现|推动|带领|管理|创建|优化|提升|完成|输出|达成)/.test(t);},critical:false,desc:'动词有力'},
-    {label:'无图片/表格',check:function(t){return!/(照片|图片|头像|表格)/i.test(t);},critical:false,desc:'纯文本格式'},
-    {label:'无特殊格式符',check:function(t){return!/[┌┐└┘├┤─│○●◆◇]/g.test(t);},critical:false,desc:'ATS可解析'},
-    {label:'内容长度适中',check:function(t){return t.length>=150;},critical:false,desc:'≥150字符'}
+
+    // 内容质量（important）
+    {label:'量化成果数据',check:function(t){return/\d+%|\d+人|\d+万|\d+元|\d+\+|\d+家|\d+个|\d+项|\d+次/.test(t);},critical:false,desc:'有数据支撑'},
+    {label:'强动词开头',check:function(t){return/(主导|设计|开发|实现|推动|带领|管理|创建|优化|提升|完成|输出|达成|搭建|撰写|统筹|驱动)/.test(t);},critical:false,desc:'动词有力'},
+    {label:'成果导向表述',check:function(t){return/(提升|增长|降低|优化|改善|提高|缩短|减少|增加|达成|超出)/.test(t);},critical:false,desc:'有成果描述'},
+
+    // 格式合规
+    {label:'纯文本格式',check:function(t){return!/(照片|图片|头像|表格|图表)/i.test(t);},critical:false,desc:'无图片/表格'},
+    {label:'无特殊格式符',check:function(t){return!/[┌┐└┘├┤─│○●◆◇═║╔╗╚╝]/g.test(t);},critical:false,desc:'ATS可解析'},
+    {label:'内容长度适中',check:function(t){return t.length>=200&&t.length<=5000;},critical:false,desc:'200-5000字符'},
+    {label:'无URL超长',check:function(t){var urls=t.match(/https?:\/\/[^\s]+/g);return!urls||urls.every(function(u){return u.length<80;});},critical:false,desc:'链接简洁'},
+
+    // 加分项
+    {label:'个人简介/概要',check:function(t){return/(自我评价|个人简介|关于我|个人优势|Profile|Summary|资深|经验丰富)/i.test(t);},critical:false,desc:'有个人简介'},
+    {label:'教育时间完整',check:function(t){return/\d{4}[.\-年]\d{1,2}[.\-月]?\s*[-~到]\s*\d{4}[.\-年]/.test(t)||/(20\d{2})\s*[-~到]\s*(20\d{2}|至今)/.test(t);},critical:false,desc:'教育时间完整'},
+    {label:'多段经历',check:function(t){return(t.match(/(\d{4}[.\-年])/g)||[]).length>=4;},critical:false,desc:'≥2段经历（时间标记≥4个）'},
   ];
   return checks.map(function(a){return Object.assign({},a,{passed:a.check(text)});});
 }
