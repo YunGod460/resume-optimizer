@@ -470,8 +470,9 @@ function generateResumeWithDeepSeek(userInput, callback) {
 
   callDeepSeek(prompt, function(err, text) {
     if (err || !text) {
-      console.log('DeepSeek API failed, using local fallback:', err);
-      showToast('已使用本地智能引擎生成简历','success');
+      var apiErr = err ? (err.message || err.toString()) : '无返回内容';
+      console.log('DeepSeek API failed, using local fallback:', apiErr);
+      showToast('AI服务暂时不可用(' + apiErr.substring(0, 30) + ')，已使用本地引擎生成','success');
       callback(generateLocalResumeData(userInput));
       return;
     }
@@ -1122,13 +1123,42 @@ function exportGeneratedPDF() {
 }
 
 // ========== RESUME FILE IMPORT (PDF/DOCX/TXT) ==========
+// ========== DYNAMIC CDN LOADER ==========
+// 按需加载第三方库，减少首屏体积
+function loadScript(url) {
+  return new Promise(function(resolve, reject) {
+    var s = document.createElement('script');
+    s.src = url;
+    s.onload = resolve;
+    s.onerror = function() { reject(new Error('加载失败: ' + url)); };
+    document.head.appendChild(s);
+  });
+}
+
 var _pdfjsReady=false;
-function ensurePdfJs(){
-  if(!_pdfjsReady&&typeof pdfjsLib!=='undefined'){
-    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    _pdfjsReady=true;
+function ensurePdfJs() {
+  if (typeof pdfjsLib !== 'undefined') {
+    if (!_pdfjsReady) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      _pdfjsReady = true;
+    }
+    return Promise.resolve();
   }
-  return typeof pdfjsLib!=='undefined';
+  return loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js').then(function() {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    _pdfjsReady = true;
+  });
+}
+
+var _mammothReady = false;
+function ensureMammoth() {
+  if (typeof mammoth !== 'undefined') {
+    _mammothReady = true;
+    return Promise.resolve();
+  }
+  return loadScript('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js').then(function() {
+    _mammothReady = true;
+  });
 }
 
 function handleResumeFileImport(event) {
@@ -1166,37 +1196,39 @@ function handleResumeFileImport(event) {
     reader.readAsText(file);
   } else if (ext === 'pdf') {
     reader.onload = function(e) {
-      if(!ensurePdfJs()){showToast('PDF组件加载中，请稍后再试','error');return;}
-      var typedarray = new Uint8Array(e.target.result);
-      pdfjsLib.getDocument({data: typedarray}).promise.then(function(pdf) {
-        var totalPages = pdf.numPages;
-        var pages = [];
-        for (var i = 1; i <= totalPages; i++) {
-          pages.push(pdf.getPage(i));
-        }
-        Promise.all(pages).then(function(pageObjs) {
-          var texts = [];
-          var done = 0;
-          pageObjs.forEach(function(page, idx) {
-            page.getTextContent().then(function(content) {
-              var pageText = content.items.map(function(item) { return item.str; }).join(' ');
-              texts[idx] = pageText;
-              done++;
-              if (done === totalPages) {
-                onText(texts.join('\n\n'));
-              }
+      ensurePdfJs().then(function() {
+        var typedarray = new Uint8Array(e.target.result);
+        pdfjsLib.getDocument({data: typedarray}).promise.then(function(pdf) {
+          var totalPages = pdf.numPages;
+          var pages = [];
+          for (var i = 1; i <= totalPages; i++) {
+            pages.push(pdf.getPage(i));
+          }
+          Promise.all(pages).then(function(pageObjs) {
+            var texts = [];
+            var done = 0;
+            pageObjs.forEach(function(page, idx) {
+              page.getTextContent().then(function(content) {
+                var pageText = content.items.map(function(item) { return item.str; }).join(' ');
+                texts[idx] = pageText;
+                done++;
+                if (done === totalPages) {
+                  onText(texts.join('\n\n'));
+                }
+              });
             });
-          });
-        }).catch(function() { onError('PDF解析失败，请尝试粘贴文本'); });
-      }).catch(function() { onError('PDF解析失败，文件可能损坏'); });
+          }).catch(function() { onError('PDF解析失败，请尝试粘贴文本'); });
+        }).catch(function() { onError('PDF解析失败，文件可能损坏'); });
+      }).catch(function() { onError('PDF组件加载失败'); });
     };
     reader.readAsArrayBuffer(file);
   } else if (ext === 'docx') {
     reader.onload = function(e) {
-      if(typeof mammoth==='undefined'){showToast('DOCX组件加载中，请稍后再试','error');return;}
-      mammoth.extractRawText({arrayBuffer: e.target.result})
-        .then(function(result) { onText(result.value); })
-        .catch(function() { onError('DOCX解析失败，请尝试粘贴文本'); });
+      ensureMammoth().then(function() {
+        mammoth.extractRawText({arrayBuffer: e.target.result})
+          .then(function(result) { onText(result.value); })
+          .catch(function() { onError('DOCX解析失败，请尝试粘贴文本'); });
+      }).catch(function() { onError('DOCX组件加载失败'); });
     };
     reader.readAsArrayBuffer(file);
   } else {
@@ -1333,6 +1365,7 @@ function runOptimization() {
       } catch(e) {
         console.log('Parse error, local fallback:', e);
         result = optimizeResumeLocal(input, jd);
+        usedLocal = true;
       }
     }
     state.optimizerResult = result;
@@ -1355,7 +1388,10 @@ function runOptimization() {
         }
       });
     }
-    if (usedLocal) showToast('已使用本地智能引擎完成优化','success');
+    if (usedLocal) {
+      var why = err ? (err.message || err.toString()).substring(0, 30) : '解析格式异常';
+      showToast('AI服务暂时不可用(' + why + ')，已使用本地引擎优化','success');
+    }
     btn.disabled = false; btn.innerHTML = '🚀 开始智能优化';
   }, 'pro');
 }
@@ -1535,7 +1571,20 @@ function displayJDMatchResult(deepResult, jdKeywords, jdMatchScore) {
 
 function displayOptimizerResult(r) {
   document.getElementById('opt-before').textContent=r.before;
-  document.getElementById('opt-after').textContent=r.after;
+  // 简单行级 diff：高亮 after 中变化/新增的行
+  var beforeLines = (r.before||'').split('\n').filter(Boolean);
+  var afterLines = (r.after||'').split('\n');
+  var afterHtml = afterLines.map(function(line) {
+    var trimmed = line.trim();
+    if (!trimmed) return '<br>';
+    // 如果在before中找不到这行（忽略首尾空格），标记为新增
+    var isNew = beforeLines.every(function(bl) { return bl.trim() !== trimmed; });
+    if (isNew) {
+      return '<div style="padding:2px 6px;margin:2px -6px;background:rgba(16,185,129,.08);border-radius:4px">' + escHtml(line) + '</div>';
+    }
+    return escHtml(line);
+  }).join('\n');
+  document.getElementById('opt-after').innerHTML = afterHtml;
   document.getElementById('opt-score-text').textContent=r.atsScore;
   document.getElementById('opt-score-circle').style.setProperty('--percent',(r.atsScore/100*360)+'deg');
   document.getElementById('ats-checklist').innerHTML=r.atsResults.map(function(a){
@@ -1989,11 +2038,31 @@ function saveGeneratorDraft() {
 function loadGeneratorDraft() {
   try {
     var data = localStorage.getItem('resumepro-generator-draft');
-    if (!data) return;
+    if (!data) return false;
     var draft = JSON.parse(data);
+    // 检查是否有实质内容
+    var hasContent = draft.name || draft.title || draft.school || draft.major ||
+      (draft.experiences && draft.experiences.length > 0 && draft.experiences[0].company);
+    if (!hasContent) return false;
     var g = state.generator;
     Object.keys(draft).forEach(function(k) { if (draft[k] !== undefined) g[k] = draft[k]; });
-  } catch(e) {/* ignore */}
+    return true;
+  } catch(e) { return false; }
+}
+function restoreGeneratorDraft() {
+  switchSection('generator');
+  state.generator.mode = 'free';
+  switchGenMode('free');
+  var restoredText = [];
+  var g = state.generator;
+  if (g.name) restoredText.push('我叫' + g.name);
+  if (g.school) restoredText.push('毕业于' + g.school + (g.major || ''));
+  if (g.title) restoredText.push('想找' + g.title + '的工作');
+  document.getElementById('gen-free-input').value = restoredText.join('，');
+  showToast('已恢复上次的草稿');
+}
+function clearGeneratorDraft() {
+  localStorage.removeItem('resumepro-generator-draft');
 }
 
 // ========== KEYBOARD SHORTCUTS ==========
@@ -2015,7 +2084,20 @@ document.addEventListener('keydown', function(e) {
 // ========== INIT ==========
 document.addEventListener('DOMContentLoaded',function(){
   loadTemplates();
-  loadGeneratorDraft();
+  if (loadGeneratorDraft()) {
+    // 延迟显示恢复提示，避免和模板加载 toast 冲突
+    setTimeout(function() {
+      showToast('检测到未完成的简历草稿');
+      // 添加恢复按钮到页面
+      var btn = document.createElement('button');
+      btn.className = 'btn btn-primary btn-sm';
+      btn.textContent = '恢复草稿';
+      btn.onclick = restoreGeneratorDraft;
+      btn.style.cssText = 'position:fixed;bottom:130px;left:50%;transform:translateX(-50%);z-index:300;box-shadow:0 8px 32px rgba(0,0,0,.15)';
+      document.body.appendChild(btn);
+      setTimeout(function() { if (btn.parentNode) btn.remove(); }, 10000);
+    }, 800);
+  }
   // 向导步骤5 → 预览就保存草稿
   var origNext = generatorNext;
   window.generatorNext = function(step) {

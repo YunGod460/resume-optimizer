@@ -899,6 +899,8 @@ body::before{
   .rs-section-title,.rs-section-title-side{font-size:10pt}
   .rs-exp-header{flex-direction:column;gap:4px}
 
+  /* Optimizer before/after → stacked */
+  #opt-results [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
   /* ATS */
   .ats-checklist{grid-template-columns:1fr;gap:6px}
   .ats-item{padding:10px 12px;font-size:.76rem}

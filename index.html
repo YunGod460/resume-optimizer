@@ -9,8 +9,6 @@
 <meta name="description" content="AI驱动的简历优化与生成工具，零基础写出让HR眼前一亮的专业简历">
 <title>ResumePro - AI简历优化与生成</title>
 <link rel="stylesheet" href="css/style.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js" defer></script>
 <script src="js/app.js" defer></script>
 </head>
 <body>
@@ -69,7 +67,7 @@
         <div class="import-drop-hint">支持 .txt / .pdf / .docx 格式，文件内容将自动填入下方文本框</div>
         <input type="file" id="opt-file-input" accept=".txt,.pdf,.docx" style="display:none" onchange="handleResumeFileImport(event)">
       </div>
-      <textarea class="form-textarea" id="opt-input" placeholder="在此粘贴你的简历文本...
+      <textarea class="form-textarea" id="opt-input" maxlength="15000" placeholder="在此粘贴你的简历文本...
 
 例如：
 负责公司公众号日常运营和内容更新
@@ -77,7 +75,7 @@
 协助团队完成年度营销计划"></textarea>
       <div class="form-group mt-16">
         <label class="form-label">目标岗位描述（可选）</label>
-        <textarea class="form-textarea" id="opt-jd" style="min-height:100px" placeholder="粘贴岗位JD，提高匹配精准度..."></textarea>
+        <textarea class="form-textarea" id="opt-jd" maxlength="5000" style="min-height:100px" placeholder="粘贴岗位JD，提高匹配精准度..."></textarea>
       </div>
       <button class="btn btn-primary btn-lg" onclick="runOptimization()" id="opt-run-btn">开始智能优化</button>
     </div>
@@ -139,7 +137,7 @@
     <div class="card" id="gen-mode-free">
       <div class="card-header">自由描述</div>
       <p class="card-desc">不需要完整简历。只需用自然语言描述你自己，哪怕只有姓名和学校，AI会自动补全所有内容。</p>
-      <textarea class="form-textarea" id="gen-free-input" placeholder="例如：
+      <textarea class="form-textarea" id="gen-free-input" maxlength="5000" placeholder="例如：
 我叫张明，毕业于南京工业大学，计算机科学与技术专业，想找前端开发的工作
 
 或者更简单：
