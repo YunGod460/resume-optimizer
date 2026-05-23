@@ -373,13 +373,13 @@ function parseUserInput(input) {
   if(mm)info.major=mm[1].replace(/专业|方向/g,'');
   // 中文求职意向匹配（多层尝试）
   // 模式1: "想找XX的工作" / "想做XX方向"
-  var tm=input.match(/(?:想找|想做)\s*([一-龥a-zA-Z+]{2,10}(?:工程师|经理|专员|助理|运营|设计|开发|分析|架构|师|员|代表|顾问|主播|投手|媒体|电商|市场|销售|客服|产品))\s*(?:的|方面|方向|岗位|职位|工作)?/i);
+  var tm=input.match(/(?:想找|想做)\s*([一-龥a-zA-Z+]{2,10}(?:工程师|经理|专员|助理|运营|设计|开发|分析|架构|师|员|代表|顾问|主播|投手|媒体|电商|市场|销售|客服|产品|教练|老师|讲师|教练))\s*(?:的|方面|方向|岗位|职位|工作)?/i);
   // 模式2: "求职意向:XX" / "应聘XX" / "岗位:XX"
   if(!tm) tm=input.match(/(?:求职意向[：:]\s*|应聘[：:\s]*|岗位[：:]\s*|目标岗位[：:]\s*|意向岗位[：:]\s*)([一-龥a-zA-Z+、/]{2,20})/i);
   // 模式3: 英文 "looking for X position" / "seeking X role"
   if(!tm) tm=input.match(/(?:looking\s+for|seeking|applying\s+for|target(?:ing)?\s+)(?:a\s+|an\s+)?(.{3,40}?)\s*(?:position|role|job|方向|岗位|职位|工作|的)/i);
   // 模式4: "X方向" / "X岗位" / "X职位" / "X的工作"
-  if(!tm) tm=input.match(/([一-龥a-zA-Z+]{2,15}(?:工程师|经理|专员|助理|运营|设计|开发|分析|架构|师|员|代表|顾问))\s*(?:方向|岗位|职位|工作)/i);
+  if(!tm) tm=input.match(/([一-龥a-zA-Z+]{2,15}(?:工程师|经理|专员|助理|运营|设计|开发|分析|架构|师|员|代表|顾问|教练|老师|讲师))\s*(?:方向|岗位|职位|工作)/i);
   // 模式5: 英文 "X position/role/job" at end of line or before comma
   if(!tm) tm=input.match(/([A-Za-z\s&]{3,30}?)\s*(?:position|role|job)(?:\s|,|$)/i);
   if(tm)info.title=tm[1].trim();
