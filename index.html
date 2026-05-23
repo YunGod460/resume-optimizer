@@ -151,11 +151,11 @@
     <!-- Guided Mode -->
     <div id="gen-mode-guided" style="display:none">
       <div class="steps" id="gen-steps">
-        <div class="step active" data-step="1"><div class="step-num">1</div><div class="step-label">基本信息</div></div>
-        <div class="step" data-step="2"><div class="step-num">2</div><div class="step-label">教育背景</div></div>
-        <div class="step" data-step="3"><div class="step-num">3</div><div class="step-label">经历评价</div></div>
-        <div class="step" data-step="4"><div class="step-num">4</div><div class="step-label">技能证书</div></div>
-        <div class="step" data-step="5"><div class="step-num">5</div><div class="step-label">预览导出</div></div>
+        <div class="step active" data-step="1" onclick="jumpToStep(1)"><div class="step-num">1</div><div class="step-label">基本信息</div></div>
+        <div class="step" data-step="2" onclick="jumpToStep(2)"><div class="step-num">2</div><div class="step-label">教育背景</div></div>
+        <div class="step" data-step="3" onclick="jumpToStep(3)"><div class="step-num">3</div><div class="step-label">经历评价</div></div>
+        <div class="step" data-step="4" onclick="jumpToStep(4)"><div class="step-num">4</div><div class="step-label">技能证书</div></div>
+        <div class="step" data-step="5" onclick="jumpToStep(5)"><div class="step-num">5</div><div class="step-label">预览导出</div></div>
       </div>
 
       <!-- Step 1 -->
@@ -224,10 +224,10 @@
         <div class="card-header" style="margin-bottom:0">简历预览</div>
         <div class="flex gap-8">
           <select class="form-select" id="gen-template-select" onchange="switchGeneratedTemplate()" style="width:auto"></select>
-          <button class="btn btn-ghost btn-sm" onclick="updateGeneratorSteps(1);document.getElementById('gen-mode-free').style.display='block';document.getElementById('gen-mode-guided').style.display='none';document.getElementById('gen-step-1').scrollIntoView({behavior:'smooth'})">返回修改</button>
           <button class="btn btn-primary btn-sm" onclick="exportGeneratedPDF()">下载PDF</button>
         </div>
       </div>
+      <div id="gen-edit-bar" class="card mb-20" style="padding:16px;background:#f8fafc;border:1px solid #e2e8f0"></div>
       <div class="preview-container">
         <div class="preview-frame" id="gen-preview-frame">
           <div class="resume-page sidebar-left" id="gen-preview"></div>

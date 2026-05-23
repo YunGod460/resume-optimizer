@@ -658,6 +658,7 @@ function handleFreeInput() {
     state.generator.step=5;state.generator.initialized=true;
     updateGeneratorSteps(5);
     renderGeneratedResume();
+    renderStep5EditBar();
     document.getElementById('gen-step-5').scrollIntoView({behavior:'smooth'});
     btn.disabled=false;btn.innerHTML=origHTML;
     showToast('简历生成完成！点击内容可直接编辑');
@@ -818,9 +819,18 @@ function generatorNext(step) {
       showToast('请填写姓名和求职意向','error');return;
     }
   }
-  if(step<5){updateGeneratorSteps(step+1);if(step+1===5)renderGeneratedResume();document.getElementById('gen-step-'+(step+1)).scrollIntoView({behavior:'smooth'});}
+  if(step<5){updateGeneratorSteps(step+1);if(step+1===5){renderGeneratedResume();renderStep5EditBar();}document.getElementById('gen-step-'+(step+1)).scrollIntoView({behavior:'smooth'});}
 }
 function generatorPrev(step){if(step>1){updateGeneratorSteps(step-1);document.getElementById('gen-step-'+(step-1)).scrollIntoView({behavior:'smooth'});}}
+
+// Step nav click → jump to that step
+function jumpToStep(step){
+  if(!state.generator.initialized) return;
+  if(step<5) saveStepData(state.generator.step);
+  updateGeneratorSteps(step);
+  if(step===5){renderGeneratedResume();renderStep5EditBar();}
+  document.getElementById('gen-step-'+step).scrollIntoView({behavior:'smooth'});
+}
 
 function saveStepData(step) {
   var g=state.generator;
@@ -908,10 +918,59 @@ function renderGeneratedResume() {
   var html=buildResumeHTML(g,tpl);
   document.getElementById('gen-preview').innerHTML=html;
   document.getElementById('gen-preview').className='resume-page sidebar-left';
-  // 动态注入模板颜色
   injectTemplateColors(tpl);
-  // 绑定编辑事件
   bindResumeEdit();
+}
+
+// 将 state.generator 数据回填到引导模式的表单中
+function fillGeneratorStepForms(data){
+  var set = function(id, val){
+    var el = document.getElementById(id);
+    if(el) el.value = val||'';
+  };
+  set('gen-name', data.name);
+  set('gen-title', data.title);
+  set('gen-phone', data.phone);
+  set('gen-email', data.email);
+  set('gen-location', data.location);
+  set('gen-school', data.school);
+  set('gen-major', data.major);
+  set('gen-degree', data.degree||'本科');
+  set('gen-edustart', data.eduStart);
+  set('gen-eduend', data.eduEnd);
+  set('gen-majorcourses', data.majorCourses);
+  set('gen-selfeval', data.selfEval);
+  set('gen-languages', data.languages);
+  set('gen-campusexp', data.campusExp);
+  // 重新渲染经历/技能/证书列表（从state.generator取，刚被AI填充过）
+  renderExperienceList();
+  renderSkillsList();
+  renderCertsList();
+}
+
+// 从步骤5跳转到指定引导步骤进行编辑
+function editGeneratorStep(step){
+  fillGeneratorStepForms(state.generator);
+  // 切换到 guided 模式显示
+  state.generator.mode = 'guided';
+  switchGenMode('guided');
+  updateGeneratorSteps(step);
+  document.getElementById('gen-step-'+step).scrollIntoView({behavior:'smooth'});
+}
+
+// Step 5 编辑工具栏
+function renderStep5EditBar(){
+  var bar = document.getElementById('gen-edit-bar');
+  if(!bar) return;
+  bar.innerHTML =
+    '<div class="card-header mb-12">编辑AI生成内容</div>'+
+    '<div class="flex flex-wrap gap-8" style="margin-bottom:4px">'+
+      '<button class="btn btn-outline btn-sm" onclick="editGeneratorStep(1)">✏️ 基本信息</button>'+
+      '<button class="btn btn-outline btn-sm" onclick="editGeneratorStep(2)">✏️ 教育背景</button>'+
+      '<button class="btn btn-outline btn-sm" onclick="editGeneratorStep(3)">✏️ 工作经历</button>'+
+      '<button class="btn btn-outline btn-sm" onclick="editGeneratorStep(4)">✏️ 技能证书</button>'+
+    '</div>'+
+    '<div class="text-xs text-muted mt-8">点击对应模块编辑，完成后回到步骤5预览</div>';
 }
 
 function injectTemplateColors(tpl, rootEl) {
