@@ -1026,9 +1026,9 @@ function buildResumeHTML(data, template) {
   infoItems.push('<div class="rs-info-item"><span class="rs-info-label">现居城市</span><span class="rs-info-val" contenteditable="true" data-field="location">'+escHtml(data.location||'')+'</span></div>');
   sidebarHTML+='<div class="rs-section"><div class="rs-section-title-side">基本信息</div>'+infoItems.join('')+'</div>';
 
-  // 技能（始终显示）
-  var allSkills=(data.skills||[]).filter(Boolean);
+  // 技能（始终显示｜空时渲染空白可编辑标签）
   sidebarHTML+='<div class="rs-section"><div class="rs-section-title-side">技能特长</div>';
+  var allSkills=(data.skills||[]).filter(Boolean);
   if(allSkills.length>0){
     var hasCat = allSkills.some(function(s){return typeof s==='string' && /^(【.+?】|\[.+?\]|[一-龥a-zA-Z]+)\s*[-—–]/.test(s);});
     if (hasCat) {
@@ -1080,15 +1080,15 @@ function buildResumeHTML(data, template) {
       });
     }
   } else {
-    sidebarHTML+='<div class="text-xs text-muted" style="padding:8px 0">（点击编辑补充技能）</div>';
+    sidebarHTML+='<div class="rs-skill-tag" contenteditable="true" data-field="skills" data-idx="0">点击添加技能</div>';
   }
   sidebarHTML+='</div>';
-  // 证书（始终显示）
+  // 证书（始终显示｜空时渲染空白可编辑标签）
   sidebarHTML+='<div class="rs-section"><div class="rs-section-title-side">技能证书</div>';
   if(data.certs&&data.certs.length>0){
     data.certs.forEach(function(cert,i){sidebarHTML+='<div class="rs-skill-tag" contenteditable="true" data-field="certs" data-idx="'+i+'">'+boldText(escHtml(typeof cert==='string'?cert:''))+'</div>';});
   } else {
-    sidebarHTML+='<div class="text-xs text-muted" style="padding:8px 0">（点击编辑补充证书）</div>';
+    sidebarHTML+='<div class="rs-skill-tag" contenteditable="true" data-field="certs" data-idx="0">点击添加证书</div>';
   }
   sidebarHTML+='</div>';
   // 语言（始终显示）
@@ -1104,7 +1104,7 @@ function buildResumeHTML(data, template) {
   mainHTML+='<span class="rs-edu-school"><span contenteditable="true" data-field="school">'+escHtml(data.school||'')+'</span> · <span contenteditable="true" data-field="degree">'+escHtml(data.degree||'')+'</span> · <span contenteditable="true" data-field="major">'+escHtml(data.major||'')+'</span></span></div>';
   mainHTML+='<div class="rs-courses" contenteditable="true" data-field="majorCourses">主修课程：'+boldText(escHtml(data.majorCourses||''))+'</div></div>';
 
-  // 校园经历（始终显示）
+  // 校园经历（始终显示｜空时渲染空白可编辑区域）
   mainHTML+='<div class="rs-section"><div class="rs-section-title">校园经历</div>';
   if(data.campusExp){
     (data.campusExp||'').split('\n').forEach(function(line){line=line.trim();if(!line)return;
@@ -1112,11 +1112,11 @@ function buildResumeHTML(data, template) {
       else mainHTML+='<div class="rs-bullet" contenteditable="true" data-field="campusExp" data-line="'+line+'">'+escHtml(line)+'</div>';
     });
   } else {
-    mainHTML+='<div class="text-xs text-muted" style="padding:8px 0">（点击编辑补充校园经历）</div>';
+    mainHTML+='<div class="rs-bullet" contenteditable="true" data-field="campusExp" data-line="">点击填写校园经历...</div>';
   }
   mainHTML+='</div>';
 
-  // 经历（始终显示）
+  // 经历（始终显示｜空数据时渲染空白可编辑卡片）
   mainHTML+='<div class="rs-section"><div class="rs-section-title">实习经历</div>';
   var validExps=(data.experiences||[]).filter(function(e){return e.company||e.title;});
   if(validExps.length>0){
@@ -1126,7 +1126,10 @@ function buildResumeHTML(data, template) {
       (exp.descs||[]).forEach(function(d,j){if(d&&d.trim())mainHTML+='<div class="rs-bullet" contenteditable="true" data-field="exp-desc" data-ei="'+ei+'" data-di="'+j+'">'+boldText(escHtml(cleanForDisplay(d.trim())))+'</div>';});
     });
   } else {
-    mainHTML+='<div class="text-xs text-muted" style="padding:8px 0">（点击编辑补充工作经历）</div>';
+    // 空数据时渲染一张空白卡片方便用户直接填写
+    mainHTML+='<div class="rs-exp-header"><span class="rs-exp-title"><span contenteditable="true" data-field="exp-title" data-ei="0">职位名称</span> | <span contenteditable="true" data-field="exp-company" data-ei="0">公司名称</span></span><span class="rs-exp-date" contenteditable="true" data-field="exp-dates" data-ei="0">开始 - 结束</span></div>';
+    mainHTML+='<div class="rs-bullet" contenteditable="true" data-field="exp-desc" data-ei="0" data-di="0">点击填写工作描述...</div>';
+    mainHTML+='<div class="rs-bullet" contenteditable="true" data-field="exp-desc" data-ei="0" data-di="0">点击填写工作描述...</div>';
   }
   mainHTML+='</div>';
 
