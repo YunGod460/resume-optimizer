@@ -1011,31 +1011,31 @@ function buildResumeHTML(data, template) {
   var c=template?.colors||state.templates.default?.colors||{};
   var pri=c.primary||'#4E7282',acc=c.accent||'#4E7282';
   var name=escHtml(data.name||'未填写'),title=escHtml(data.title||'');
-  var contactItems=[data.phone,data.email,data.location].filter(Boolean);
-  var contactLine=contactItems.join('  |  ');
+  var contactItems=[data.phone||'',data.email||'',data.location||''];
+  var contactLine=contactItems.filter(Boolean).join('  |  ');
+  if(!contactLine) contactLine = '（点击编辑联系方式）';
 
-  // 左侧栏
+  // 左侧栏（所有模块始终显示，空值留空）
   var sidebarHTML='';
   var infoItems=[];
-  if(data.school)infoItems.push('<div class="rs-info-item"><span class="rs-info-label">毕业院校</span><span class="rs-info-val" contenteditable="true" data-field="school">'+escHtml(data.school)+'</span></div>');
-  if(data.degree)infoItems.push('<div class="rs-info-item"><span class="rs-info-label">学历</span><span class="rs-info-val" contenteditable="true" data-field="degree">'+escHtml(data.degree)+'</span></div>');
-  if(data.major)infoItems.push('<div class="rs-info-item"><span class="rs-info-label">专业</span><span class="rs-info-val" contenteditable="true" data-field="major">'+escHtml(data.major)+'</span></div>');
-  if(data.phone)infoItems.push('<div class="rs-info-item"><span class="rs-info-label">电话</span><span class="rs-info-val" contenteditable="true" data-field="phone">'+escHtml(data.phone)+'</span></div>');
-  if(data.email)infoItems.push('<div class="rs-info-item"><span class="rs-info-label">邮箱</span><span class="rs-info-val" contenteditable="true" data-field="email">'+escHtml(data.email)+'</span></div>');
-  if(data.location)infoItems.push('<div class="rs-info-item"><span class="rs-info-label">现居城市</span><span class="rs-info-val" contenteditable="true" data-field="location">'+escHtml(data.location)+'</span></div>');
-  if(infoItems.length>0)sidebarHTML+='<div class="rs-section"><div class="rs-section-title-side">基本信息</div>'+infoItems.join('')+'</div>';
+  infoItems.push('<div class="rs-info-item"><span class="rs-info-label">毕业院校</span><span class="rs-info-val" contenteditable="true" data-field="school">'+escHtml(data.school||'')+'</span></div>');
+  infoItems.push('<div class="rs-info-item"><span class="rs-info-label">学历</span><span class="rs-info-val" contenteditable="true" data-field="degree">'+escHtml(data.degree||'')+'</span></div>');
+  infoItems.push('<div class="rs-info-item"><span class="rs-info-label">专业</span><span class="rs-info-val" contenteditable="true" data-field="major">'+escHtml(data.major||'')+'</span></div>');
+  infoItems.push('<div class="rs-info-item"><span class="rs-info-label">电话</span><span class="rs-info-val" contenteditable="true" data-field="phone">'+escHtml(data.phone||'')+'</span></div>');
+  infoItems.push('<div class="rs-info-item"><span class="rs-info-label">邮箱</span><span class="rs-info-val" contenteditable="true" data-field="email">'+escHtml(data.email||'')+'</span></div>');
+  infoItems.push('<div class="rs-info-item"><span class="rs-info-label">现居城市</span><span class="rs-info-val" contenteditable="true" data-field="location">'+escHtml(data.location||'')+'</span></div>');
+  sidebarHTML+='<div class="rs-section"><div class="rs-section-title-side">基本信息</div>'+infoItems.join('')+'</div>';
 
-  // 技能 - 智能归类去重
+  // 技能（始终显示）
   var allSkills=(data.skills||[]).filter(Boolean);
+  sidebarHTML+='<div class="rs-section"><div class="rs-section-title-side">技能特长</div>';
   if(allSkills.length>0){
-    sidebarHTML+='<div class="rs-section"><div class="rs-section-title-side">技能特长</div>';
     var hasCat = allSkills.some(function(s){return typeof s==='string' && /^(【.+?】|\[.+?\]|[一-龥a-zA-Z]+)\s*[-—–]/.test(s);});
     if (hasCat) {
       var usedCats = {};
       var mergedSkills = [];
       allSkills.forEach(function(s,i){
         var t = typeof s==='string'?s:'';
-        // Try three formats: 【Category】desc, [Category]desc, Category - desc
         var m = t.match(/^(?:【(.+?)】|\[(.+?)\])/);
         if (m) {
           var catName = (m[1] || m[2]).replace(/\s+/g,'');
@@ -1047,7 +1047,6 @@ function buildResumeHTML(data, template) {
           }
           if (rest) usedCats[catName].items.push(boldText(escHtml(rest)));
         } else {
-          // Format: Category - description
           var dashIdx = t.search(/[-—–]/);
           if (dashIdx !== -1) {
             var catName = t.substring(0, dashIdx).trim().replace(/\s+/g,'');
@@ -1062,7 +1061,6 @@ function buildResumeHTML(data, template) {
           }
         }
       });
-      // 渲染合并后的技能
       mergedSkills.forEach(function(catGroup, gi){
         if (catGroup.cat) {
           sidebarHTML += '<div class="rs-skill-cat"><div class="rs-skill-cat-label">'+escHtml(catGroup.cat)+'</div>';
@@ -1081,51 +1079,56 @@ function buildResumeHTML(data, template) {
         sidebarHTML+='<div class="rs-skill-tag" contenteditable="true" data-field="skills" data-idx="'+i+'">'+boldText(escHtml(typeof s==='string'?s:''))+'</div>';
       });
     }
-    sidebarHTML+='</div>';
+  } else {
+    sidebarHTML+='<div class="text-xs text-muted" style="padding:8px 0">（点击编辑补充技能）</div>';
   }
-  // 证书
+  sidebarHTML+='</div>';
+  // 证书（始终显示）
+  sidebarHTML+='<div class="rs-section"><div class="rs-section-title-side">技能证书</div>';
   if(data.certs&&data.certs.length>0){
-    sidebarHTML+='<div class="rs-section"><div class="rs-section-title-side">技能证书</div>';
     data.certs.forEach(function(cert,i){sidebarHTML+='<div class="rs-skill-tag" contenteditable="true" data-field="certs" data-idx="'+i+'">'+boldText(escHtml(typeof cert==='string'?cert:''))+'</div>';});
-    sidebarHTML+='</div>';
+  } else {
+    sidebarHTML+='<div class="text-xs text-muted" style="padding:8px 0">（点击编辑补充证书）</div>';
   }
-  // 语言
-  if(data.languages)sidebarHTML+='<div class="rs-section"><div class="rs-section-title-side">语言能力</div><div class="rs-info-val" style="font-size:10pt" contenteditable="true" data-field="languages">'+boldText(escHtml(data.languages))+'</div></div>';
+  sidebarHTML+='</div>';
+  // 语言（始终显示）
+  sidebarHTML+='<div class="rs-section"><div class="rs-section-title-side">语言能力</div><div class="rs-info-val" style="font-size:10pt" contenteditable="true" data-field="languages">'+boldText(escHtml(data.languages||''))+'</div></div>';
 
-  // 右侧主区
+  // 右侧主区（所有模块始终显示）
   var mainHTML='';
-  if(data.selfEval)mainHTML+='<div class="rs-section"><div class="rs-section-title">自我评价</div><div class="rs-text" contenteditable="true" data-field="selfEval">'+boldText(escHtml(data.selfEval))+'</div></div>';
+  mainHTML+='<div class="rs-section"><div class="rs-section-title">自我评价</div><div class="rs-text" contenteditable="true" data-field="selfEval">'+boldText(escHtml(data.selfEval||''))+'</div></div>';
 
-  // 教育
-  if(data.school||data.major){
-    mainHTML+='<div class="rs-section"><div class="rs-section-title">教育背景</div><div class="rs-edu-header">';
-    mainHTML+='<span class="rs-edu-date" contenteditable="true" data-field="eduPeriod">'+escHtml(data.eduStart||'2021.09')+' - '+escHtml(data.eduEnd||'2025.06')+'</span>';
-    mainHTML+='<span class="rs-edu-school"><span contenteditable="true" data-field="school">'+escHtml(data.school||'')+'</span> · <span contenteditable="true" data-field="degree">'+escHtml(data.degree||'本科')+'</span> · <span contenteditable="true" data-field="major">'+escHtml(data.major||'')+'</span></span></div>';
-    if(data.majorCourses)mainHTML+='<div class="rs-courses" contenteditable="true" data-field="majorCourses">主修课程：'+boldText(escHtml(data.majorCourses))+'</div>';
-    mainHTML+='</div>';
-  }
+  // 教育（始终显示）
+  mainHTML+='<div class="rs-section"><div class="rs-section-title">教育背景</div><div class="rs-edu-header">';
+  mainHTML+='<span class="rs-edu-date" contenteditable="true" data-field="eduPeriod">'+escHtml(data.eduStart||'')+' - '+escHtml(data.eduEnd||'')+'</span>';
+  mainHTML+='<span class="rs-edu-school"><span contenteditable="true" data-field="school">'+escHtml(data.school||'')+'</span> · <span contenteditable="true" data-field="degree">'+escHtml(data.degree||'')+'</span> · <span contenteditable="true" data-field="major">'+escHtml(data.major||'')+'</span></span></div>';
+  mainHTML+='<div class="rs-courses" contenteditable="true" data-field="majorCourses">主修课程：'+boldText(escHtml(data.majorCourses||''))+'</div></div>';
 
-  // 校园经历
+  // 校园经历（始终显示）
+  mainHTML+='<div class="rs-section"><div class="rs-section-title">校园经历</div>';
   if(data.campusExp){
-    mainHTML+='<div class="rs-section"><div class="rs-section-title">校园经历</div>';
     (data.campusExp||'').split('\n').forEach(function(line){line=line.trim();if(!line)return;
       if(line.indexOf('|')!==-1)mainHTML+='<div class="rs-exp-header"><span class="rs-exp-title" contenteditable="true" data-field="campusExp" data-line="'+line+'">'+boldText(escHtml(line))+'</span></div>';
       else mainHTML+='<div class="rs-bullet" contenteditable="true" data-field="campusExp" data-line="'+line+'">'+escHtml(line)+'</div>';
     });
-    mainHTML+='</div>';
+  } else {
+    mainHTML+='<div class="text-xs text-muted" style="padding:8px 0">（点击编辑补充校园经历）</div>';
   }
+  mainHTML+='</div>';
 
-  // 经历
+  // 经历（始终显示）
+  mainHTML+='<div class="rs-section"><div class="rs-section-title">实习经历</div>';
   var validExps=(data.experiences||[]).filter(function(e){return e.company||e.title;});
   if(validExps.length>0){
-    mainHTML+='<div class="rs-section"><div class="rs-section-title">实习经历</div>';
     validExps.forEach(function(exp,ei){
       var dates=[exp.start,exp.end].filter(Boolean).join(' - ');
       mainHTML+='<div class="rs-exp-header"><span class="rs-exp-title"><span contenteditable="true" data-field="exp-title" data-ei="'+ei+'">'+escHtml(exp.title||'')+'</span> | <span contenteditable="true" data-field="exp-company" data-ei="'+ei+'">'+escHtml(exp.company||'')+'</span></span><span class="rs-exp-date" contenteditable="true" data-field="exp-dates" data-ei="'+ei+'">'+escHtml(dates)+'</span></div>';
       (exp.descs||[]).forEach(function(d,j){if(d&&d.trim())mainHTML+='<div class="rs-bullet" contenteditable="true" data-field="exp-desc" data-ei="'+ei+'" data-di="'+j+'">'+boldText(escHtml(cleanForDisplay(d.trim())))+'</div>';});
     });
-    mainHTML+='</div>';
+  } else {
+    mainHTML+='<div class="text-xs text-muted" style="padding:8px 0">（点击编辑补充工作经历）</div>';
   }
+  mainHTML+='</div>';
 
   return '<div class="rs-header"><div class="rs-header-left"><h1 class="rs-name" contenteditable="true" data-field="name">'+name+'</h1><div class="rs-title-sub" contenteditable="true" data-field="title">'+title+'</div>'+(contactLine?'<div class="rs-contact" contenteditable="true" data-field="contact">'+escHtml(contactLine)+'</div>':'')+'</div><div class="rs-header-right"><div class="rs-header-decor">个人简历</div><div class="rs-header-subtitle">细心从每一个小细节开始。</div><div class="rs-header-eng">PERSONAL RESUME</div></div></div><div class="rs-body"><div class="rs-sidebar">'+sidebarHTML+'</div><div class="rs-main">'+mainHTML+'</div></div>';
 }
